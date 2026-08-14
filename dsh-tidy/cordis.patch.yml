@@ -1,0 +1,5 @@
+# dsh-tidy bundle patch. Installed through `dsh plugin` (bundle layer) or by
+# adding the same row to the profile's own cordis.patch.yml.
+- insert:
+    - id: dsh-tidy
+      name: dsh-tidy

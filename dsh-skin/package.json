@@ -1,0 +1,38 @@
+{
+  "name": "dsh-skin",
+  "description": "DSH custom appearance plugin: light/dark switch, 15 preset skins, 13 adjustable color roles and font scaling, persisted in localStorage (survives restart).",
+  "version": "0.2.0",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "plugin",
+    "theme",
+    "skin",
+    "ui"
+  ],
+  "author": "Highjobop",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Highjobop/dsh-gadgets.git",
+    "directory": "dsh-skin"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web"
+    }
+  },
+  "license": "MIT"
+}

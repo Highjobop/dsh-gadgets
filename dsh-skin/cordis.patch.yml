@@ -1,0 +1,7 @@
+# dsh-skin bundle patch. When the package is installed through
+# `dsh plugin --profile web add <dsh-skin spec>` it becomes a bundle layer and
+# this insert composes the plugin row. For a manual install, add the same row
+# to the profile's own cordis.patch.yml instead.
+- insert:
+    - id: dsh-skin
+      name: dsh-skin

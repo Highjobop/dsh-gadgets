@@ -1,0 +1,9 @@
+# 本地工具与临时文件
+.claude/
+.tests/
+node_modules/
+*.log
+
+# 诊断临时文件
+dom-report.json
+diag-report.json

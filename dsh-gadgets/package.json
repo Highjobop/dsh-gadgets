@@ -1,0 +1,30 @@
+{
+  "name": "dsh-gadgets",
+  "description": "Lightweight DeepSeek Harness tweaks, one install: dsh-skin (custom appearance) + dsh-tidy (conversation folding & nav rail).",
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "dsh-skin": "^0.2.0",
+    "dsh-tidy": "^0.2.0"
+  },
+  "files": [
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "plugin",
+    "theme",
+    "skin",
+    "conversation",
+    "ui"
+  ],
+  "author": "Highjobop",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Highjobop/dsh-gadgets.git"
+  },
+  "license": "MIT"
+}
