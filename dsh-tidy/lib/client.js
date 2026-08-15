@@ -22,21 +22,21 @@ window.__ModuleLoader__.load({
     Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
 
     var UI_CSS = [
-      // ── 折叠模式按钮（body 浮动层，对话区左上角，单行）──
-      '.dshtidy-fbtn{position:fixed;z-index:900;left:0;top:0;display:inline-flex;flex-direction:row;align-items:baseline;gap:16px;margin:2px 4px;padding:8px 18px;border:1px solid var(--dsw-alias-border-l2);border-radius:22px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font:inherit;cursor:pointer;box-shadow:var(--dsw-shadow-lv1);transition:border-color .15s,box-shadow .15s,transform .1s}',
+      // ── 折叠模式按钮（body 浮动层，对话区左上角，单行；
+      //    flex-end 让主/副文字真正底部对齐，baseline 对齐中文会偏高）──
+      '.dshtidy-fbtn{position:fixed;z-index:900;left:0;top:0;display:inline-flex;flex-direction:row;align-items:flex-end;gap:16px;margin:2px 4px;padding:8px 18px;border:1px solid var(--dsw-alias-border-l2);border-radius:22px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font:inherit;cursor:pointer;box-shadow:var(--dsw-shadow-lv1);transition:border-color .15s,box-shadow .15s,transform .1s}',
       '.dshtidy-fbtn:hover{border-color:var(--dsw-alias-brand-primary);box-shadow:var(--dsw-shadow-lv2);transform:translateY(-1px)}',
       '.dshtidy-fbtn:active{transform:translateY(0)}',
-      '.dshtidy-fbtn-main{font-size:13px;font-weight:500;line-height:18px;color:var(--dsw-alias-label-primary)}',
-      '.dshtidy-fbtn-sub{font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary);opacity:.75}',
+      '.dshtidy-fbtn-main{font-size:13px;font-weight:500;line-height:16px;color:var(--dsw-alias-label-primary)}',
+      '.dshtidy-fbtn-sub{font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary);opacity:.75;transform:translateY(1px)}',
       // ── 导航条：全部短横杠（悬停 title 显示前几个字），激活浅色高亮；可上下滚动 ──
       '.dshtidy-nav{position:fixed;right:10px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:5px;max-height:calc(100vh - 40px);overflow-y:auto;padding:8px 6px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-overlay);box-shadow:var(--dsw-shadow-lv2);z-index:1000}',
       '.dshtidy-navdot{display:block;flex:none;width:16px;height:4px;border-radius:2px;border:none;background:var(--dsw-alias-border-l2);cursor:pointer;padding:0;transition:width .15s,background .15s,transform .15s}',
       '.dshtidy-navdot:hover{transform:scaleX(1.3);background:color-mix(in srgb, var(--dsw-specific-bubble-highlight, var(--dsw-alias-brand-primary)) 45%, transparent)}',
       '.dshtidy-navdot.dshtidy-active{width:24px;background:color-mix(in srgb, var(--dsw-specific-bubble-highlight, var(--dsw-alias-brand-primary)) 45%, transparent)}',
-      // ── 总 Token 徽章（对话区左下角，圆角矩形，半透明自适应背景 + 细描边，
-      //    文字用主题色：浅色背景下浅、深色背景下深，不抢眼。
-      //    不用 backdrop-filter——它与半透明背景+描边组合会产生双层边伪影）──
-      '.dshtidy-tok{position:fixed;z-index:900;left:0;bottom:0;display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:16px;background:color-mix(in srgb, var(--dsw-alias-bg-layer-1) 88%, transparent);border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;line-height:16px;pointer-events:none;white-space:nowrap}'
+      // ── 总 Token 徽章（对话区左下角，圆角矩形，完全不透明自适应背景 + 细描边。
+      //    不用半透明/backdrop-filter——都会透出底层内容产生"双层矩形"伪影）──
+      '.dshtidy-tok{position:fixed;z-index:900;left:0;bottom:0;display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:16px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;line-height:16px;pointer-events:none;white-space:nowrap}'
     ].join('\n');
     if (typeof document !== 'undefined' && document.querySelector('style[data-plugin-css="dsh-tidy/ui"]') === null) {
       var uiTag = document.createElement('style');
@@ -315,16 +315,30 @@ window.__ModuleLoader__.load({
       // 自动加载全部历史：轻量策略 —— 按钮就绪（非禁用）才点、最多 8 页、
       // 内容不增长即停、12s 硬上限；加载期间折叠扫描暂停（loadingHistory 由
       // apply 层共享），导航重建不暂停（已轻量化），横杠随加载实时增长。
+      // 只找【可见】flow 内的「加载更早」按钮：会话切换后旧 flow 可能以隐藏
+      // 方式残留在 DOM 里，全文档搜索会点到隐藏按钮（加载了看不见的会话、
+      // 或让本应加载新会话的点击全部落空）。
       function findOlderButton() {
-        var els = document.querySelectorAll('button');
-        for (var i = 0; i < els.length; i++) {
-          var b = els[i];
-          var t = (b.textContent || '').trim();
-          if (t === '加载更早' || t === 'Load earlier') return b;
+        var flows = document.querySelectorAll('[data-chat-flow]');
+        for (var i = 0; i < flows.length; i++) {
+          var r0 = flows[i].getBoundingClientRect();
+          if (flows[i].offsetParent === null && r0.width === 0 && r0.height === 0) continue; // 跳过隐藏 flow
+          var els = flows[i].querySelectorAll('button');
+          for (var j = 0; j < els.length; j++) {
+            var b = els[j];
+            var t = (b.textContent || '').trim();
+            if (t === '加载更早' || t === 'Load earlier') return b;
+          }
+          var cls = flows[i].querySelector('.Md3f7G_older button');
+          if (cls !== null) return cls;
         }
-        var cls = document.querySelector('.Md3f7G_older button');
-        if (cls !== null) return cls;
         return null;
+      }
+      // 上次加载结束的时间戳：按钮长期存在（历史很多）时，加载会在停止后
+      // 经过冷却期自动续跑，直到「加载更早」按钮消失（历史全部加载完）。
+      var lastLoadEnd = 0;
+      function noteLoadEnd() {
+        lastLoadEnd = Date.now();
       }
       function startLoadAll() {
         if (loadTimer !== null) return;
@@ -344,19 +358,8 @@ window.__ModuleLoader__.load({
               clearInterval(loadTimer);
               loadTimer = null;
               setLoadingHistory(false);
+              noteLoadEnd();
               schedule(); // 加载完成：一次渲染完整节点
-              // 内容未就绪就退出的场景：新会话 flow 刚挂载时「加载更早」按钮
-              // 可能还没渲染出来，此时停止会导致该会话再也不自动加载（必须刷新）。
-              // 延迟重试几次兜底（retryFor 绑定当前可见 flow，换会话后重新计数）。
-              if (btn === null && count === 0 && retryAttempts < 3) {
-                retryAttempts++;
-                if (retryTimer === null) {
-                  retryTimer = setTimeout(function () {
-                    retryTimer = null;
-                    startLoadAll();
-                  }, 1500);
-                }
-              }
               return;
             }
             // 上一页还在加载中（按钮禁用）→ 跳过本次 tick，避免无效点击与加载重叠
@@ -368,6 +371,7 @@ window.__ModuleLoader__.load({
                 clearInterval(loadTimer);
                 loadTimer = null;
                 setLoadingHistory(false);
+                noteLoadEnd();
                 schedule();
                 return;
               }
@@ -381,6 +385,7 @@ window.__ModuleLoader__.load({
             clearInterval(loadTimer);
             loadTimer = null;
             setLoadingHistory(false);
+            noteLoadEnd();
             schedule();
           }
         }, 700);
@@ -450,28 +455,17 @@ window.__ModuleLoader__.load({
           updateActive();
         });
       }
-      // 检测可见 flow 集合变化 → 重新触发历史加载（startLoadAll 防重入）。
-      // 用「可见 flow 集合的签名」而不是单个 lastFlow：切换会话时新旧 flow
-      // 的挂载/隐藏顺序不定，只比较第一个可见 flow 会在"内容尚未就绪"时
-      // 错过触发，导致横杠不自动加载（必须刷新才恢复）。
-      var lastFlowSig = '';
-      var retryTimer = null;
-      var retryAttempts = 0;
+      // 按钮驱动：可见 flow 内存在「加载更早」按钮 = 有更多历史可加载。
+      // 会话切换时 [data-chat-flow] 元素会被 React 复用（同一元素换内容），
+      // 不能用 flow 元素/签名判断"换了会话"——按钮重新出现本身就是要加载的
+      // 信号，天然覆盖首次打开、切换会话、手动加载后继续等所有场景。
+      // 冷却期（3s）防止 noGrowth 误停后立刻重启造成的忙循环。
       function ensureHistoryLoad() {
-        var flows = document.querySelectorAll('[data-chat-flow]');
-        var sig = [];
-        for (var i = 0; i < flows.length; i++) {
-          var r0 = flows[i].getBoundingClientRect();
-          if (flows[i].offsetParent !== null || r0.width > 0) {
-            sig.push(flows[i].getAttribute('data-chat-flow-key') || flows[i].getAttribute('data-chat-anchor-key') || ('flow-' + i));
-          }
-        }
-        var next = sig.join(',');
-        if (next !== lastFlowSig) {
-          lastFlowSig = next;
-          retryAttempts = 0; // 换了可见会话，重试计数重置
-          startLoadAll();
-        }
+        if (loadTimer !== null) return; // 已有加载在跑（含切换时旧加载未停的情况）
+        if (Date.now() - lastLoadEnd < 3000) return;
+        var btn = findOlderButton();
+        if (btn === null) return;
+        startLoadAll();
       }
       function schedule() {
         // 加载历史期间不暂停重建：重建已轻量化（懒读标题），横杠随加载实时增长，
@@ -528,7 +522,6 @@ window.__ModuleLoader__.load({
       function stop() {
         if (watchdog !== null) { clearInterval(watchdog); watchdog = null; }
         if (loadTimer !== null) { clearInterval(loadTimer); loadTimer = null; }
-        if (retryTimer !== null) { clearTimeout(retryTimer); retryTimer = null; }
         if (bodyObserver !== null) { bodyObserver.disconnect(); bodyObserver = null; }
         if (flowObserver !== null) { flowObserver.disconnect(); flowObserver = null; }
         if (raf !== null) { cancelAnimationFrame(raf); raf = null; }
@@ -677,9 +670,13 @@ window.__ModuleLoader__.load({
         } catch (e) { /* 忽略 */ }
         return null;
       }
-      // 会话切换即取数：id 变化时立即拉一次；同一会话由低频定时器轮询
+      // 会话切换（id 变化）立即取数；同一会话按 POLL_MS 轮询取数。
+      // 注意：轮询必须真的取数——上一版在"同一会话"时直接 return，
+      // 导致 10s 定时器空转、token 永不更新（只有切换会话才刷新）。
       var lastSessionId = null;
-      function fetchTotal() {
+      var lastFetchAt = 0;
+      var POLL_MS = 10000;
+      function fetchTotal(force) {
         var id = currentSessionId();
         var changed = id !== null && id !== lastSessionId;
         if (changed) {
@@ -687,7 +684,11 @@ window.__ModuleLoader__.load({
           lastValue = null; // 换会话后旧值作废，等新值回来再显示
         }
         if (id !== null) {
-          if (changed) fetchFor(id);
+          var now = Date.now();
+          if (changed || force === true || now - lastFetchAt >= POLL_MS) {
+            lastFetchAt = now;
+            fetchFor(id);
+          }
           return;
         }
         // 兜底：取最近更新的会话
@@ -722,7 +723,7 @@ window.__ModuleLoader__.load({
         var onVisibility = function () {
           if (document.visibilityState === 'visible') {
             position();
-            fetchTotal();
+            fetchTotal(true);
           }
         };
         document.addEventListener('visibilitychange', onVisibility);
@@ -730,9 +731,9 @@ window.__ModuleLoader__.load({
           var sessions = ctx.get('sessions');
           if (sessions !== undefined && sessions.list && typeof sessions.list.subscribe === 'function') {
             sessionSub = sessions.list.subscribe(function () {
-              // 会话切换（current 变化）：立即取数 + 重新定位
+              // 会话切换（current 变化）或列表状态变化：立即取数 + 重新定位
               position();
-              fetchTotal();
+              fetchTotal(true);
             });
           }
         } catch (e) { /* 忽略 */ }
