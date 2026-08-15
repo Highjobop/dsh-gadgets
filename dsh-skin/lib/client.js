@@ -446,6 +446,62 @@ window.__ModuleLoader__.load({
     var FONT_SCALES = { default: 1, s: 0.8, l: 1.25, xl: 1.5 };
     var FONT_LABELS = { s: '小', default: '中（默认）', l: '大', xl: '特大' };
 
+    // ── 中英文界面文本（locale 服务可用时由 apply 用 bind() 接管，否则回落中文）──
+    var I18N_NS = 'dsh-skin';
+    var I18N = {
+      zh: {
+        title: '个性化外观',
+        saved: '已保存外观：{name} · {font}',
+        default: '默认', custom: '自定义',
+        modeTitle: '显示模式', light: '亮色', dark: '暗色', system: '跟随系统',
+        presetTitle: '预设皮肤',
+        fontTitle: '字号', fontS: '小', fontDefault: '中（默认）', fontL: '大', fontXl: '特大',
+        customStyle: '自定义样式',
+        customHint: '颜色微调（从当前预设继承，同时作用于亮/暗模式）',
+        reset: '恢复默认',
+        'group.基础': '基础', 'group.文字': '文字', 'group.边框': '边框', 'group.强调与状态': '强调与状态',
+        'field.base': '背景色', 'field.layer1': '卡片背景', 'field.layer2': '嵌套卡片', 'field.overlay': '浮层背景', 'field.sidebar': '侧栏背景',
+        'field.label1': '主文字', 'field.label2': '次要文字',
+        'field.border1': '边框（细）', 'field.border2': '边框（粗）',
+        'field.brand': '主题色', 'field.error': '错误色', 'field.success': '成功色', 'field.warn': '警告色',
+        'preset.ocean': '海盐蓝', 'preset.mint': '薄荷绿', 'preset.night': '薰衣草紫',
+        'preset.sunset': '暖阳橙', 'preset.sakura': '樱花粉', 'preset.mocha': '摩卡棕',
+        'preset.forest': '森林绿', 'preset.sky': '天际青', 'preset.berry': '莓果红',
+        'preset.cream': '奶油米', 'preset.aurora': '极光青', 'preset.obsidian': '石墨灰',
+        'preset.salt': '海盐白', 'preset.lemon': '柠檬黄', 'preset.coral': '珊瑚红'
+      },
+      en: {
+        title: 'Custom appearance',
+        saved: 'Saved appearance: {name} · {font}',
+        default: 'Default', custom: 'Custom',
+        modeTitle: 'Display mode', light: 'Light', dark: 'Dark', system: 'Follow system',
+        presetTitle: 'Preset skins',
+        fontTitle: 'Font size', fontS: 'Small', fontDefault: 'Medium (default)', fontL: 'Large', fontXl: 'Extra large',
+        customStyle: 'Custom style',
+        customHint: 'Fine-tune colors (inherited from the current preset, applies to both light/dark modes)',
+        reset: 'Reset to default',
+        'group.基础': 'Base', 'group.文字': 'Text', 'group.边框': 'Borders', 'group.强调与状态': 'Accent & status',
+        'field.base': 'Background', 'field.layer1': 'Card background', 'field.layer2': 'Nested card', 'field.overlay': 'Overlay background', 'field.sidebar': 'Sidebar background',
+        'field.label1': 'Primary text', 'field.label2': 'Secondary text',
+        'field.border1': 'Border (thin)', 'field.border2': 'Border (thick)',
+        'field.brand': 'Brand', 'field.error': 'Error', 'field.success': 'Success', 'field.warn': 'Warning',
+        'preset.ocean': 'Ocean blue', 'preset.mint': 'Mint', 'preset.night': 'Lavender',
+        'preset.sunset': 'Sunset orange', 'preset.sakura': 'Sakura', 'preset.mocha': 'Mocha',
+        'preset.forest': 'Forest', 'preset.sky': 'Sky blue', 'preset.berry': 'Berry',
+        'preset.cream': 'Cream', 'preset.aurora': 'Aurora', 'preset.obsidian': 'Graphite',
+        'preset.salt': 'Sea salt', 'preset.lemon': 'Lemon', 'preset.coral': 'Coral'
+      }
+    };
+    var translate = function (key, params) {
+      var v = I18N.zh[key];
+      if (v !== undefined && params !== undefined && params !== null) {
+        v = String(v).replace(/\{(\w+)\}/g, function (m, name) {
+          return name in params ? String(params[name]) : m;
+        });
+      }
+      return v !== undefined ? v : key;
+    };
+
     // 预设展示顺序：白/灰/黑 → 红 → 橙 → 黄 → 绿 → 青 → 蓝 → 紫
     // （撞色/拼色预设已下架暂存：duo_sunsea 蓝黄、duo_ember 红橙、duo_royal 紫金、duo_mintcoral 青粉，代码注释保留在 PRESETS 中，后续重新设计）
     var PRESET_ORDER = ['salt', 'obsidian', 'berry', 'coral', 'sakura', 'sunset', 'mocha', 'cream', 'lemon', 'mint', 'forest', 'aurora', 'sky', 'ocean', 'night'];
@@ -530,6 +586,22 @@ window.__ModuleLoader__.load({
     function apply(ctx) {
       var theme = ctx.get('theme');
       var slots = ctx.get('slots');
+      // 中英文：locale 服务可用时注册字典并接管翻译（调用时读当前语言）
+      var locale = ctx.get('locale');
+      var localeUnsub = null;
+      if (locale !== undefined && typeof locale.register === 'function' && typeof locale.bind === 'function') {
+        try {
+          locale.register(I18N_NS, 'zh', I18N.zh);
+          locale.register(I18N_NS, 'en', I18N.en);
+          var bound = locale.bind(I18N_NS);
+          translate = function (key, params) { return bound(key, params); };
+          if (typeof locale.subscribe === 'function') {
+            localeUnsub = locale.subscribe(function () {
+              // bind 调用时读当前语言，无需缓存；订阅仅为保持注册生命周期
+            });
+          }
+        } catch (e) { /* locale 注册失败则保留中文回落 */ }
+      }
 
       var SOURCE = 'dsh-skin';
       var disposer = null;
@@ -808,6 +880,7 @@ window.__ModuleLoader__.load({
           resetTokens();
           state.font = 'default';
           applyFont();
+          if (localeUnsub !== null) { try { localeUnsub(); } catch (e) { /* 忽略 */ } localeUnsub = null; }
         };
       });
 
@@ -823,17 +896,24 @@ window.__ModuleLoader__.load({
         var textState = React.useState({});
         var texts = textState[0];
         var setTexts = textState[1];
+        // 语言切换时重渲染（locale 服务存在时）
+        React.useEffect(function () {
+          if (locale !== undefined && typeof locale.subscribe === 'function') {
+            return locale.subscribe(function () { setTick({}); });
+          }
+          return undefined;
+        }, []);
         var active = state.preset;
         var font = state.font;
         var mode = theme !== undefined ? theme.getTheme().preference : 'light';
-        var savedName = active === 'default' ? '默认' : (active === 'custom' ? '自定义' : (PRESETS[active] ? PRESETS[active].name : active));
-        var savedLabel = savedName + ' · 字号' + FONT_LABELS[font];
+        var savedName = active === 'default' ? translate('default') : (active === 'custom' ? translate('custom') : (PRESETS[active] ? translate('preset.' + active) : active));
+        var savedLabel = translate('saved', { name: savedName, font: translate('font' + font.charAt(0).toUpperCase() + font.slice(1)) });
         var rerender = function () { setTick({}); };
 
         var seg = React.createElement('div', { className: 'dshskin-seg' },
-          React.createElement('button', { key: 'light', className: 'dshskin-seg-btn' + (mode === 'light' ? ' dshskin-active' : ''), onClick: function () { if (theme !== undefined) theme.setTheme('light'); rerender(); } }, '亮色'),
-          React.createElement('button', { key: 'dark', className: 'dshskin-seg-btn' + (mode === 'dark' ? ' dshskin-active' : ''), onClick: function () { if (theme !== undefined) theme.setTheme('dark'); rerender(); } }, '暗色'),
-          React.createElement('button', { key: 'system', className: 'dshskin-seg-btn' + (mode === 'system' ? ' dshskin-active' : ''), onClick: function () { if (theme !== undefined) theme.setTheme('system'); rerender(); } }, '跟随系统')
+          React.createElement('button', { key: 'light', className: 'dshskin-seg-btn' + (mode === 'light' ? ' dshskin-active' : ''), onClick: function () { if (theme !== undefined) theme.setTheme('light'); rerender(); } }, translate('light')),
+          React.createElement('button', { key: 'dark', className: 'dshskin-seg-btn' + (mode === 'dark' ? ' dshskin-active' : ''), onClick: function () { if (theme !== undefined) theme.setTheme('dark'); rerender(); } }, translate('dark')),
+          React.createElement('button', { key: 'system', className: 'dshskin-seg-btn' + (mode === 'system' ? ' dshskin-active' : ''), onClick: function () { if (theme !== undefined) theme.setTheme('system'); rerender(); } }, translate('system'))
         );
 
         var cards = [React.createElement('button', {
@@ -841,7 +921,7 @@ window.__ModuleLoader__.load({
           className: 'dshskin-card' + (active === 'default' ? ' dshskin-active' : ''),
           onClick: function () { applyPreset('default'); rerender(); }
         },
-          React.createElement('div', null, '默认'),
+          React.createElement('div', null, translate('default')),
           React.createElement('div', { className: 'dshskin-chips' },
             React.createElement('span', { className: 'dshskin-chip', style: { background: '#f4f4f5' } }),
             React.createElement('span', { className: 'dshskin-chip', style: { background: '#ffffff' } }),
@@ -859,7 +939,7 @@ window.__ModuleLoader__.load({
             className: 'dshskin-card' + (active === pid ? ' dshskin-active' : ''),
             onClick: function (id) { return function () { applyPreset(id); rerender(); }; }(pid)
           },
-            React.createElement('div', null, pr.name),
+            React.createElement('div', null, translate('preset.' + pid)),
             React.createElement('div', { className: 'dshskin-chips' },
               React.createElement('span', { className: 'dshskin-chip', style: { background: tk['--dsw-alias-bg-base'].light } }),
               React.createElement('span', { className: 'dshskin-chip', style: { background: tk['--dsw-alias-bg-layer-1'].light } }),
@@ -877,7 +957,7 @@ window.__ModuleLoader__.load({
             key: fk,
             className: 'dshskin-fontbtn' + (font === fk ? ' dshskin-active' : ''),
             onClick: function (key) { return function () { setFont(key); rerender(); }; }(fk)
-          }, FONT_LABELS[fk]));
+          }, translate('font' + fk.charAt(0).toUpperCase() + fk.slice(1))));
         }
 
         // 「自定义样式」折叠区
@@ -898,7 +978,7 @@ window.__ModuleLoader__.load({
                 rerender();
               };
               fieldEls.push(React.createElement('div', { key: field.key, className: 'dshskin-field' },
-                React.createElement('span', { className: 'dshskin-fieldlabel' }, field.label),
+                React.createElement('span', { className: 'dshskin-fieldlabel' }, translate('field.' + field.key)),
                 React.createElement('input', {
                   type: 'text',
                   className: 'dshskin-hexinput',
@@ -923,7 +1003,7 @@ window.__ModuleLoader__.load({
             })(field);
           }
           groupEls.push(React.createElement('div', { key: grp.name, className: 'dshskin-group' },
-            React.createElement('div', { className: 'dshskin-groupname' }, grp.name),
+            React.createElement('div', { className: 'dshskin-groupname' }, translate('group.' + grp.name)),
             ...fieldEls
           ));
         }
@@ -934,27 +1014,27 @@ window.__ModuleLoader__.load({
             onClick: function () { setCustomOpen(!customOpen); }
           },
             React.createElement('span', { className: 'dshskin-carrow' + (customOpen ? ' dshskin-open' : '') }, '▶'),
-            React.createElement('span', null, '自定义样式')
+            React.createElement('span', null, translate('customStyle'))
           ),
           customOpen ? React.createElement('div', { className: 'dshskin-cbody' },
-            React.createElement('div', { className: 'dshskin-title' }, '颜色微调（从当前预设继承，同时作用于亮/暗模式）'),
+            React.createElement('div', { className: 'dshskin-title' }, translate('customHint')),
             ...groupEls
           ) : null
         );
 
         var body = open ? React.createElement('div', { className: 'dshskin-body' },
-          React.createElement('div', { className: 'dshskin-saved' }, '已保存外观：' + savedLabel),
-          React.createElement('div', { className: 'dshskin-title' }, '显示模式'),
+          React.createElement('div', { className: 'dshskin-saved' }, savedLabel),
+          React.createElement('div', { className: 'dshskin-title' }, translate('modeTitle')),
           seg,
-          React.createElement('div', { className: 'dshskin-title' }, '预设皮肤'),
+          React.createElement('div', { className: 'dshskin-title' }, translate('presetTitle')),
           React.createElement('div', { className: 'dshskin-grid' }, ...cards),
-          React.createElement('div', { className: 'dshskin-title' }, '字号'),
+          React.createElement('div', { className: 'dshskin-title' }, translate('fontTitle')),
           React.createElement('div', { className: 'dshskin-fontrow' }, ...fontBtns),
           customSection,
           React.createElement('button', {
             className: 'dshskin-reset',
             onClick: function () { resetSkin(); rerender(); }
-          }, '恢复默认')
+          }, translate('reset'))
         ) : null;
 
         return React.createElement('div', { className: 'dshskin-rowwrap' },
@@ -962,7 +1042,7 @@ window.__ModuleLoader__.load({
             className: 'dshskin-head',
             onClick: function () { setOpen(!open); }
           },
-            React.createElement('span', null, '个性化外观'),
+            React.createElement('span', null, translate('title')),
             React.createElement('span', { className: 'dshskin-chevron' + (open ? ' dshskin-open' : '') }, '▶')
           ),
           body
@@ -978,8 +1058,9 @@ window.__ModuleLoader__.load({
     }
 
     exports.apply = apply;
-    // theme 必须是硬依赖：恢复逻辑在 apply 时同步执行，theme 未就绪会静默失效
-    exports.inject = ['slots', 'theme'];
+    // theme 必须是硬依赖：恢复逻辑在 apply 时同步执行，theme 未就绪会静默失效；
+    // locale 硬依赖：中英文翻译需要 locale 就绪后注册字典并接管（否则永远中文回落）
+    exports.inject = ['slots', 'theme', 'locale'];
     return module.exports;
   }
 });
