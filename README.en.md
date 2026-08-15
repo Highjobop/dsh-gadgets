@@ -18,20 +18,18 @@
 - All choices persist in localStorage — survive restart
 
 ### 📦 dsh-tidy — Conversation tidy (zh/en bilingual)
-- **Message folding**: a button at the top-left of the conversation toggles "Compact / Full" — when compacted, each turn keeps only the final assistant reply; thoughts, tool calls and intermediate outputs are hidden
-- **Nav rail**: short dashes on the right edge (one per question), preview text is read lazily on hover, click jumps, active position auto-highlights, scrollable
-- **Auto-load history**: button-driven — loads while a "Load earlier" button is present in the visible conversation (ready-only clicks, max 8 pages per round, stops when content stops growing, resumes after cooldown until fully loaded); no jank, dashes grow live
-- **Total-token badge**: bottom-left rounded rectangle, shows the session total token only (input + output), left-aligned with the fold button, bottom-aligned with the stats line; **context-pressure warning**: ≥60% turns the send-button color, ≥80% turns red with a "context nearly full" notice (same occupancy basis as the official context ring: `projectedTokens ÷ contextWindow`)
-- **Per-feature toggles**: Settings → General → "Conversation Tidy" (a collapsible entry alongside Language / Appearance / Task alerts) — fold / nav rail / token badge, each can be switched off, stops and cleans up immediately
+- **Message folding**: a top-left button toggles "Compact / Full" — when compacted, each turn keeps only the final assistant reply
+- **Nav rail**: short dashes on the right edge (one per question), hover for previews, click to jump, auto-highlight, auto-loads history
+- **Total-token badge**: bottom-left, shows the session total token; turns warning color at ≥60% context usage, red at ≥80%
+- **Per-feature toggles**: Settings → General → "Conversation Tidy" — fold / nav rail / badge can be switched independently
 - Fold mode persists in localStorage, default full
 
 ### 🔔 dsh-task-alerts — Task alerts (zh/en bilingual)
-- **Task done**: when a session's whole run ends (including approval waits and subagents), plays a chime + pops a notification — **alerts in the foreground too** by default (optional "only when the page is not in the foreground" mode); **manual stops stay silent**, errors and blocked runs get their own alerts
-- **Approval / answer needed**: on pending approval, plan review or an `ask_user` question, plays a chime + pops a notification, and tags the tab title with a ⚠ mark — always alerts, never missed (waits ~2.5 s so quick auto-decisions don't disturb)
-- **Sound**: Web Audio synthesized **tone library**, zero audio assets — 6 tones (Ding / Chime / Triple / Deep / Soft / Beep), one row per event = toggle + tone + preview, volume slider (**default 50 %**, remembers the last value); **Popup**: in-page top-right toast always shows (click jumps to the session) + system Notification as an extra channel when authorized
-- **Settings**: Settings → General → "Task alerts" (a second-level entry alongside Language / Appearance / Agent presets, UI switches with the DSH language) — independent toggles for done / approval / answer / error, tones, volume, popup, test buttons; persisted in localStorage
-- **Bilingual**: UI and notification texts follow the DSH language setting (zh/en)
-- Signals come from the official client `sessions` list snapshot + `session.history` end reasons (same source as the official sidebar), browser-side only, zero core changes
+- **Task done / error**: chime + popup when a whole run ends; manual stops stay silent
+- **Approval / answer needed**: chime + popup, ⚠ mark on the tab title — always alerts
+- **Sound & popup**: 6 tones, adjustable volume; browser Notification, falls back to in-page toasts when not authorized
+- **Settings**: Settings → General → "Task alerts" — independent toggles for done / approval / answer / error, tones, volume, popup
+- UI follows the DSH language setting (zh/en)
 
 ## Install
 
