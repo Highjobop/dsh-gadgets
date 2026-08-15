@@ -1,6 +1,6 @@
-# dsh-notify
+# dsh-task-alerts
 
-DSH（DeepSeek Harness）任务提醒插件（轻量，纯浏览器端，**中英文双语**）：**任务完成 / 出错 / 需要审批 / 等待回答** 时发出**提示音**并弹出**提示窗口**，人不在电脑前也能第一时间知道。实现思路参考社区同类插件（dsh-notification、dsh-win-notify、dsh-notify-sound、dsh-notify-bark）并与官方 client 快照对齐。
+DSH（DeepSeek Harness）任务提醒插件（轻量，纯浏览器端，**中英文双语**）：**任务完成 / 出错 / 需要审批 / 等待回答** 时发出**提示音**并弹出**提示窗口**，人不在电脑前也能第一时间知道。实现思路参考社区同类插件（dsh-notification、dsh-win-notify、dsh-task-alerts-sound、dsh-notify-bark）并与官方 client 快照对齐。
 
 - **任务完成**：会话运行彻底结束时（含审批等待、子代理运行在内的整轮任务）播放提示音，并弹出「任务完成」通知——**前台也提醒**（默认；如需不打扰可开启「仅页面不在前台时提醒」）。完成边沿会自动查 `session.history` 中最近 `turn/end` 的原因区分结束语义：**手动停止（aborted）静默不算完成**；**出错（error）单独红色 ✕「任务出错」通知**；**阻塞（blocked）「任务阻塞」通知**。
 - **需要审批 / 计划待审**：会话出现待审批操作时播放提示音，弹出「需要审批」通知，并给标签页标题附加 `⚠ 需要审批` 标记（全部解决后自动还原）——**始终提醒**，不会错过。审批/回答类提醒**延迟约 2.5 秒**才响：快速自动决定（或你已当场处理）的不打扰，期间已解决会自动取消。
@@ -28,12 +28,12 @@ DSH（DeepSeek Harness）任务提醒插件（轻量，纯浏览器端，**中�
 ## 安装
 
 ```bash
-dsh plugin --profile web add dsh-notify   # npm 发布版
+dsh plugin --profile web add dsh-task-alerts   # npm 发布版
 # 或聚合包：dsh plugin --profile web add dsh-gadgets
-# 或 GitHub 调试：dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-notify
+# 或 GitHub 调试：dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-task-alerts
 ```
 
-或手动：包放 `~/.dsh/profiles/node_modules/dsh-notify`，在 `cordis.patch.yml` 加一行 `- insert: [{ id: dsh-notify, name: dsh-notify }]`，重启 DSH。
+或手动：包放 `~/.dsh/profiles/node_modules/dsh-task-alerts`，在 `cordis.patch.yml` 加一行 `- insert: [{ id: dsh-task-alerts, name: dsh-task-alerts }]`，重启 DSH。
 
 ## 兼容性说明
 
@@ -45,7 +45,7 @@ dsh plugin --profile web add dsh-notify   # npm 发布版
 ## 结构
 
 ```
-dsh-notify/
+dsh-task-alerts/
 ├── package.json     # dsh.client 声明
 ├── lib/index.js     # host 半边（空激活载体）
 ├── lib/client.js    # 浏览器半边：状态机检测 + 音色库 + 弹窗/悬浮提示 + 设置页

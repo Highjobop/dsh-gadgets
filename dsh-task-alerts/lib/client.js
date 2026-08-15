@@ -1,4 +1,4 @@
-// dsh-notify browser bundle. 任务提醒：纯浏览器端，零核心改动、零音频资源。
+// dsh-task-alerts browser bundle. 任务提醒：纯浏览器端，零核心改动、零音频资源。
 // 信号源 = 官方 client sessions 列表快照（sessions.list，与官方侧栏同源）：
 //   - 任务结束：顶层会话 running 位 true→false（整轮任务结束才翻转）。随后拉
 //     session.history 找最近 turn/end 的 reason 区分结束语义（参考社区插件做法）：
@@ -18,7 +18,7 @@
 // 安全设计：只读官方快照 + 自身状态机（prevRunning / prevPending），不碰 React 树；
 // 卸载完全还原（移除样式/悬浮层/订阅/监听/定时器，恢复标题）。
 window.__ModuleLoader__.load({
-  id: 'dsh-notify',
+  id: 'dsh-task-alerts',
   factory: (require) => {
     var module = { exports: {} };
     var exports = module.exports;
@@ -28,59 +28,59 @@ window.__ModuleLoader__.load({
     // ── 样式：通用设置折叠行（官方第二层条目样式：无卡片边框、底部分隔线）+ 悬浮提示 ──
     var UI_CSS = [
       // 设置 → 通用 →「任务提醒」行（与官方「语言」「外观」行同款：无边框卡片、底部细线分隔）
-      '.dshnotify-rowwrap{border-bottom:1px solid var(--dsw-alias-border-l2);padding:12px 0}',
-      '.dshnotify-head{display:flex;align-items:center;justify-content:space-between;width:100%;border:none;background:none;color:var(--dsw-alias-label-primary);cursor:pointer;font:inherit;font-size:14px;padding:2px 0}',
-      '.dshnotify-head:hover{color:var(--dsw-alias-brand-primary)}',
-      '.dshnotify-chevron{transition:transform .15s;color:var(--dsw-alias-label-secondary);font-size:12px}',
-      '.dshnotify-chevron.dshnotify-open{transform:rotate(90deg)}',
-      '.dshnotify-setbody{display:flex;flex-direction:column;gap:10px;margin-top:8px;padding-top:8px}',
-      '.dshnotify-eventrow{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}',
-      '.dshnotify-evleft{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;line-height:18px;color:var(--dsw-alias-label-primary)}',
-      '.dshnotify-evleft input,.dshnotify-setrow input{accent-color:var(--dsw-alias-brand-primary);cursor:pointer;margin:0}',
-      '.dshnotify-evright{display:flex;align-items:center;gap:8px}',
-      '.dshnotify-hint{color:var(--dsw-alias-label-secondary);font-size:12px}',
-      '.dshnotify-hintline{color:var(--dsw-alias-label-secondary);font-size:12px;line-height:16px}',
-      '.dshnotify-select{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);border-radius:8px;padding:3px 6px;font:inherit;font-size:12px;line-height:18px}',
-      '.dshnotify-range{width:110px;accent-color:var(--dsw-alias-brand-primary);cursor:pointer}',
-      '.dshnotify-volval{flex:none;width:40px;font-size:12px;color:var(--dsw-alias-label-secondary);text-align:right}',
-      '.dshnotify-setrow{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;line-height:18px;color:var(--dsw-alias-label-primary)}',
-      '.dshnotify-tests{display:flex;gap:8px;margin-top:2px}',
-      '.dshnotify-test{border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;line-height:18px;padding:4px 12px;cursor:pointer}',
-      '.dshnotify-test:hover{border-color:var(--dsw-alias-brand-primary)}',
+      '.dshtaskalerts-rowwrap{border-bottom:1px solid var(--dsw-alias-border-l2);padding:12px 0}',
+      '.dshtaskalerts-head{display:flex;align-items:center;justify-content:space-between;width:100%;border:none;background:none;color:var(--dsw-alias-label-primary);cursor:pointer;font:inherit;font-size:14px;padding:2px 0}',
+      '.dshtaskalerts-head:hover{color:var(--dsw-alias-brand-primary)}',
+      '.dshtaskalerts-chevron{transition:transform .15s;color:var(--dsw-alias-label-secondary);font-size:12px}',
+      '.dshtaskalerts-chevron.dshtaskalerts-open{transform:rotate(90deg)}',
+      '.dshtaskalerts-setbody{display:flex;flex-direction:column;gap:10px;margin-top:8px;padding-top:8px}',
+      '.dshtaskalerts-eventrow{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}',
+      '.dshtaskalerts-evleft{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;line-height:18px;color:var(--dsw-alias-label-primary)}',
+      '.dshtaskalerts-evleft input,.dshtaskalerts-setrow input{accent-color:var(--dsw-alias-brand-primary);cursor:pointer;margin:0}',
+      '.dshtaskalerts-evright{display:flex;align-items:center;gap:8px}',
+      '.dshtaskalerts-hint{color:var(--dsw-alias-label-secondary);font-size:12px}',
+      '.dshtaskalerts-hintline{color:var(--dsw-alias-label-secondary);font-size:12px;line-height:16px}',
+      '.dshtaskalerts-select{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);border-radius:8px;padding:3px 6px;font:inherit;font-size:12px;line-height:18px}',
+      '.dshtaskalerts-range{width:110px;accent-color:var(--dsw-alias-brand-primary);cursor:pointer}',
+      '.dshtaskalerts-volval{flex:none;width:40px;font-size:12px;color:var(--dsw-alias-label-secondary);text-align:right}',
+      '.dshtaskalerts-setrow{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;line-height:18px;color:var(--dsw-alias-label-primary)}',
+      '.dshtaskalerts-tests{display:flex;gap:8px;margin-top:2px}',
+      '.dshtaskalerts-test{border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;line-height:18px;padding:4px 12px;cursor:pointer}',
+      '.dshtaskalerts-test:hover{border-color:var(--dsw-alias-brand-primary)}',
       // 右上角悬浮提示（body 浮动层，最高层，覆盖审批弹层）
-      '.dshnotify-box{position:fixed;top:16px;right:16px;z-index:2147483000;display:flex;flex-direction:column;gap:8px;max-width:340px;pointer-events:none}',
-      '.dshnotify-toast{pointer-events:auto;display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:12px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);box-shadow:var(--dsw-shadow-lv2);color:var(--dsw-alias-label-primary);cursor:pointer;animation:dshnotify-in .18s ease-out}',
-      '.dshnotify-toast.dshnotify-out{opacity:0;transform:translateX(12px);transition:opacity .18s,transform .18s}',
-      '.dshnotify-ico{flex:none;font-size:16px;line-height:20px}',
-      '.dshnotify-toast.dshnotify-approval .dshnotify-ico{color:var(--dsw-alias-state-error-primary)}',
-      '.dshnotify-toast.dshnotify-error .dshnotify-ico{color:var(--dsw-alias-state-error-primary)}',
-      '.dshnotify-toast.dshnotify-done .dshnotify-ico{color:var(--dsw-alias-state-success-primary)}',
-      '.dshnotify-toast.dshnotify-question .dshnotify-ico{color:var(--dsw-alias-state-warn-primary)}',
-      '.dshnotify-txt{flex:1;min-width:0}',
-      '.dshnotify-title{font-size:13px;font-weight:600;line-height:18px}',
-      '.dshnotify-bodyline{font-size:12px;line-height:16px;color:var(--dsw-alias-label-secondary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}',
-      '.dshnotify-x{flex:none;border:none;background:none;color:var(--dsw-alias-label-secondary);cursor:pointer;font-size:12px;line-height:16px;padding:0 2px}',
-      '.dshnotify-x:hover{color:var(--dsw-alias-label-primary)}',
-      '@keyframes dshnotify-in{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}'
+      '.dshtaskalerts-box{position:fixed;top:16px;right:16px;z-index:2147483000;display:flex;flex-direction:column;gap:8px;max-width:340px;pointer-events:none}',
+      '.dshtaskalerts-toast{pointer-events:auto;display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:12px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);box-shadow:var(--dsw-shadow-lv2);color:var(--dsw-alias-label-primary);cursor:pointer;animation:dshtaskalerts-in .18s ease-out}',
+      '.dshtaskalerts-toast.dshtaskalerts-out{opacity:0;transform:translateX(12px);transition:opacity .18s,transform .18s}',
+      '.dshtaskalerts-ico{flex:none;font-size:16px;line-height:20px}',
+      '.dshtaskalerts-toast.dshtaskalerts-approval .dshtaskalerts-ico{color:var(--dsw-alias-state-error-primary)}',
+      '.dshtaskalerts-toast.dshtaskalerts-error .dshtaskalerts-ico{color:var(--dsw-alias-state-error-primary)}',
+      '.dshtaskalerts-toast.dshtaskalerts-done .dshtaskalerts-ico{color:var(--dsw-alias-state-success-primary)}',
+      '.dshtaskalerts-toast.dshtaskalerts-question .dshtaskalerts-ico{color:var(--dsw-alias-state-warn-primary)}',
+      '.dshtaskalerts-txt{flex:1;min-width:0}',
+      '.dshtaskalerts-title{font-size:13px;font-weight:600;line-height:18px}',
+      '.dshtaskalerts-bodyline{font-size:12px;line-height:16px;color:var(--dsw-alias-label-secondary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}',
+      '.dshtaskalerts-x{flex:none;border:none;background:none;color:var(--dsw-alias-label-secondary);cursor:pointer;font-size:12px;line-height:16px;padding:0 2px}',
+      '.dshtaskalerts-x:hover{color:var(--dsw-alias-label-primary)}',
+      '@keyframes dshtaskalerts-in{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}'
     ].join('\n');
     function injectStyles() {
-      if (typeof document !== 'undefined' && document.querySelector('style[data-plugin-css="dsh-notify/ui"]') === null) {
+      if (typeof document !== 'undefined' && document.querySelector('style[data-plugin-css="dsh-task-alerts/ui"]') === null) {
         var tag = document.createElement('style');
-        tag.dataset.plugin = 'dsh-notify';
-        tag.dataset.pluginCss = 'dsh-notify/ui';
+        tag.dataset.plugin = 'dsh-task-alerts';
+        tag.dataset.pluginCss = 'dsh-task-alerts/ui';
         tag.textContent = UI_CSS;
         document.head.appendChild(tag);
       }
     }
     function clearStaleElements() {
       try {
-        var box = document.querySelector('.dshnotify-box');
+        var box = document.querySelector('.dshtaskalerts-box');
         if (box !== null) box.remove();
       } catch (e) { /* 忽略 */ }
     }
 
     // ── 持久化：localStorage（第三方命名空间无法通过 settings RPC 写入）──
-    var STORAGE_KEY = 'dsh-notify.settings';
+    var STORAGE_KEY = 'dsh-task-alerts.settings';
     // 事件开关：done（完成）/ approval（审批）/ question（回答）/ error（出错）/
     // sound（提示音）/ popup（弹窗）；volume 音量；tones 各事件音色
     var DEFAULTS = {
@@ -183,7 +183,7 @@ window.__ModuleLoader__.load({
     // 音色名的 i18n key（zh/en 见 I18N）
     var TONE_NAME_KEYS = { ding: 'toneDing', clear: 'toneClear', triple: 'toneTriple', deep: 'toneDeep', soft: 'toneSoft', beep: 'toneBeep' };
     // ── 中英文界面文本（locale 服务不可用时回落中文）──
-    var I18N_NS = 'dsh-notify';
+    var I18N_NS = 'dsh-task-alerts';
     var I18N = {
       zh: {
         title: '任务提醒',
@@ -192,7 +192,7 @@ window.__ModuleLoader__.load({
         sound: '提示音', popup: '通知弹窗', hintPopup: '未授权时自动改用页面内右上角悬浮提示',
         volume: '音量', preview: '试听',
         testToast: '发测试通知', requestPerm: '授权浏览器通知',
-        testToastBody: '这是 dsh-notify 的测试通知，点击关闭。',
+        testToastBody: '这是 dsh-task-alerts 的测试通知，点击关闭。',
         awayOnly: '仅页面不在前台时提醒', hintAwayOnly: '关闭后在前台也会提醒',
         hintLine: '「发测试通知」会顺便请求浏览器通知权限；提示音在首次点击页面后解锁（浏览器自动播放策略）。',
         toneDing: '叮咚', toneClear: '清脆', toneTriple: '三连音', toneDeep: '闷响', toneSoft: '柔和', toneBeep: '电子哔',
@@ -209,7 +209,7 @@ window.__ModuleLoader__.load({
         sound: 'Sound', popup: 'Popup notifications', hintPopup: 'Falls back to in-page toasts when not authorized',
         volume: 'Volume', preview: 'Preview',
         testToast: 'Send test notification', requestPerm: 'Authorize notifications',
-        testToastBody: 'This is a dsh-notify test notification. Click to close.',
+        testToastBody: 'This is a dsh-task-alerts test notification. Click to close.',
         awayOnly: 'Only when the page is not in the foreground', hintAwayOnly: 'When off, alerts also fire while the page is in the foreground',
         hintLine: 'The test button also requests browser notification permission; sounds unlock after the first click on the page (browser autoplay policy).',
         toneDing: 'Ding', toneClear: 'Chime', toneTriple: 'Triple', toneDeep: 'Deep', toneSoft: 'Soft', toneBeep: 'Beep',
@@ -270,26 +270,26 @@ window.__ModuleLoader__.load({
       if (typeof document === 'undefined') return;
       if (toastBox === null || !toastBox.isConnected) {
         toastBox = document.createElement('div');
-        toastBox.className = 'dshnotify-box';
+        toastBox.className = 'dshtaskalerts-box';
         document.body.appendChild(toastBox);
       }
       var el = document.createElement('div');
-      el.className = 'dshnotify-toast dshnotify-' + kind;
+      el.className = 'dshtaskalerts-toast dshtaskalerts-' + kind;
       var icon = document.createElement('div');
-      icon.className = 'dshnotify-ico';
+      icon.className = 'dshtaskalerts-ico';
       icon.textContent = kind === 'approval' ? '⚠' : kind === 'question' ? '❓' : kind === 'error' ? '✕' : '✓';
       var txt = document.createElement('div');
-      txt.className = 'dshnotify-txt';
+      txt.className = 'dshtaskalerts-txt';
       var h = document.createElement('div');
-      h.className = 'dshnotify-title';
+      h.className = 'dshtaskalerts-title';
       h.textContent = title;
       var b = document.createElement('div');
-      b.className = 'dshnotify-bodyline';
+      b.className = 'dshtaskalerts-bodyline';
       b.textContent = body;
       txt.appendChild(h);
       txt.appendChild(b);
       var close = document.createElement('button');
-      close.className = 'dshnotify-x';
+      close.className = 'dshtaskalerts-x';
       close.textContent = '✕';
       close.addEventListener('click', function (ev) {
         ev.stopPropagation();
@@ -304,7 +304,7 @@ window.__ModuleLoader__.load({
         if (dismissed) return;
         dismissed = true;
         for (var i = 0; i < timers.length; i++) clearTimeout(timers[i]);
-        el.classList.add('dshnotify-out');
+        el.classList.add('dshtaskalerts-out');
         setTimeout(function () {
           if (el.isConnected) el.remove();
         }, 200);
@@ -570,36 +570,36 @@ window.__ModuleLoader__.load({
           var id = TONE_IDS[i];
           opts.push(React.createElement('option', { key: id, value: id }, tl(TONE_NAME_KEYS[id])));
         }
-        return React.createElement('div', { key: key, className: 'dshnotify-eventrow' },
-          React.createElement('label', { className: 'dshnotify-evleft' },
+        return React.createElement('div', { key: key, className: 'dshtaskalerts-eventrow' },
+          React.createElement('label', { className: 'dshtaskalerts-evleft' },
             React.createElement('input', {
               type: 'checkbox',
               checked: s[key] === true,
               onChange: function () { toggle(key); }
             }),
             React.createElement('span', null, label),
-            hint ? React.createElement('span', { className: 'dshnotify-hint' }, hint) : null
+            hint ? React.createElement('span', { className: 'dshtaskalerts-hint' }, hint) : null
           ),
-          React.createElement('span', { className: 'dshnotify-evright' },
+          React.createElement('span', { className: 'dshtaskalerts-evright' },
             React.createElement('select', {
-              className: 'dshnotify-select',
+              className: 'dshtaskalerts-select',
               value: s.tones[key],
               onChange: function (ev) { setTone(key, ev.target.value); }
             }, opts),
             React.createElement('button', {
-              className: 'dshnotify-test',
+              className: 'dshtaskalerts-test',
               onClick: function () { ctl.preview(key); }
             }, tl('preview'))
           )
         );
       }
-      var body = open ? React.createElement('div', { className: 'dshnotify-setbody' },
+      var body = open ? React.createElement('div', { className: 'dshtaskalerts-setbody' },
         eventrow('done', tl('done'), tl('hintDone')),
         eventrow('approval', tl('approval'), tl('hintAlways')),
         eventrow('question', tl('question'), tl('hintAlways')),
         eventrow('error', tl('error'), tl('hintAway')),
-        React.createElement('div', { key: 'sound', className: 'dshnotify-eventrow' },
-          React.createElement('label', { className: 'dshnotify-evleft' },
+        React.createElement('div', { key: 'sound', className: 'dshtaskalerts-eventrow' },
+          React.createElement('label', { className: 'dshtaskalerts-evleft' },
             React.createElement('input', {
               type: 'checkbox',
               checked: s.sound === true,
@@ -607,50 +607,50 @@ window.__ModuleLoader__.load({
             }),
             React.createElement('span', null, tl('sound'))
           ),
-          React.createElement('span', { className: 'dshnotify-evright' },
+          React.createElement('span', { className: 'dshtaskalerts-evright' },
             React.createElement('input', {
               type: 'range', min: 0, max: 1, step: 0.05,
-              className: 'dshnotify-range',
+              className: 'dshtaskalerts-range',
               value: s.volume,
               onChange: function (ev) { setValue('volume', Number(ev.target.value)); }
             }),
-            React.createElement('span', { className: 'dshnotify-volval' }, Math.round(s.volume * 100) + '%')
+            React.createElement('span', { className: 'dshtaskalerts-volval' }, Math.round(s.volume * 100) + '%')
           )
         ),
-        React.createElement('div', { key: 'away', className: 'dshnotify-eventrow' },
-          React.createElement('label', { className: 'dshnotify-evleft' },
+        React.createElement('div', { key: 'away', className: 'dshtaskalerts-eventrow' },
+          React.createElement('label', { className: 'dshtaskalerts-evleft' },
             React.createElement('input', {
               type: 'checkbox',
               checked: s.awayOnly === true,
               onChange: function () { toggle('awayOnly'); }
             }),
             React.createElement('span', null, tl('awayOnly')),
-            React.createElement('span', { className: 'dshnotify-hint' }, tl('hintAwayOnly'))
+            React.createElement('span', { className: 'dshtaskalerts-hint' }, tl('hintAwayOnly'))
           ),
-          React.createElement('span', { className: 'dshnotify-evright' }, null)
+          React.createElement('span', { className: 'dshtaskalerts-evright' }, null)
         ),
-        React.createElement('label', { key: 'popup', className: 'dshnotify-setrow' },
+        React.createElement('label', { key: 'popup', className: 'dshtaskalerts-setrow' },
           React.createElement('input', {
             type: 'checkbox',
             checked: s.popup === true,
             onChange: function () { toggle('popup'); }
           }),
           React.createElement('span', null, tl('popup')),
-          React.createElement('span', { className: 'dshnotify-hint' }, tl('hintPopup'))
+          React.createElement('span', { className: 'dshtaskalerts-hint' }, tl('hintPopup'))
         ),
-        React.createElement('div', { key: 'tests', className: 'dshnotify-tests' },
-          React.createElement('button', { className: 'dshnotify-test', onClick: function () { ctl.testToast(); } }, tl('testToast')),
-          React.createElement('button', { className: 'dshnotify-test', onClick: function () { ctl.requestPerm(); } }, tl('requestPerm'))
+        React.createElement('div', { key: 'tests', className: 'dshtaskalerts-tests' },
+          React.createElement('button', { className: 'dshtaskalerts-test', onClick: function () { ctl.testToast(); } }, tl('testToast')),
+          React.createElement('button', { className: 'dshtaskalerts-test', onClick: function () { ctl.requestPerm(); } }, tl('requestPerm'))
         ),
-        React.createElement('div', { key: 'hint', className: 'dshnotify-hintline' }, tl('hintLine'))
+        React.createElement('div', { key: 'hint', className: 'dshtaskalerts-hintline' }, tl('hintLine'))
       ) : null;
-      return React.createElement('div', { className: 'dshnotify-rowwrap' },
+      return React.createElement('div', { className: 'dshtaskalerts-rowwrap' },
         React.createElement('button', {
-          className: 'dshnotify-head',
+          className: 'dshtaskalerts-head',
           onClick: function () { setOpen(!open); }
         },
           React.createElement('span', null, tl('title')),
-          React.createElement('span', { className: 'dshnotify-chevron' + (open ? ' dshnotify-open' : '') }, '▶')
+          React.createElement('span', { className: 'dshtaskalerts-chevron' + (open ? ' dshtaskalerts-open' : '') }, '▶')
         ),
         body
       );
@@ -712,7 +712,7 @@ window.__ModuleLoader__.load({
           // 避开外观(10) 与「个性化外观」(15) 的邻近区域，order 30 独立成项
           slots.inject('settings.general.item', function () {
             return slots.register(
-              { name: 'settings.general.item', id: 'dsh-notify', order: 30 },
+              { name: 'settings.general.item', id: 'dsh-task-alerts', order: 30 },
               function () { return React.createElement(NotifyRow, { ctl: controller, tl: translate, locale: locale }); }
             );
           });
@@ -742,10 +742,10 @@ window.__ModuleLoader__.load({
           }
           setBadge(false);
           rootCtx = null;
-          var st = document.querySelector('style[data-plugin-css="dsh-notify/ui"]');
+          var st = document.querySelector('style[data-plugin-css="dsh-task-alerts/ui"]');
           if (st !== null) st.remove();
         };
-      }, 'dsh-notify: cleanup');
+      }, 'dsh-task-alerts: cleanup');
     }
 
     exports.apply = apply;

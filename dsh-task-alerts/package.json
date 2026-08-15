@@ -1,6 +1,6 @@
 {
-  "name": "dsh-notify",
-  "description": "DSH task notification plugin: a chime (Web Audio, no assets) plus a popup (browser Notification, or an in-page top-right toast as fallback) when a session finishes running or starts waiting for your approval / answer. Browser-side only, lightweight, Settings → General → Task alerts.",
+  "name": "dsh-task-alerts",
+  "description": "DSH task notification plugin: a chime (Web Audio, no assets) plus a popup (browser Notification, or an in-page top-right toast as fallback) when a session finishes running or starts waiting for your approval / answer. Browser-side only, lightweight, zh/en bilingual, Settings → General → Task alerts.",
   "version": "0.1.0",
   "type": "module",
   "main": "lib/index.js",
@@ -29,7 +29,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Highjobop/dsh-gadgets.git",
-    "directory": "dsh-notify"
+    "directory": "dsh-task-alerts"
   },
   "dsh": {
     "client": {
