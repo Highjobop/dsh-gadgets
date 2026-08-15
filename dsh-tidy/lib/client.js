@@ -344,6 +344,18 @@ window.__ModuleLoader__.load({
               loadTimer = null;
               setLoadingHistory(false);
               schedule(); // 加载完成：一次渲染完整节点
+              // 内容未就绪就退出的场景：新会话 flow 刚挂载时「加载更早」按钮
+              // 可能还没渲染出来，此时停止会导致该会话再也不自动加载（必须刷新）。
+              // 延迟重试几次兜底（retryFor 绑定当前可见 flow，换会话后重新计数）。
+              if (btn === null && count === 0 && retryAttempts < 3) {
+                retryAttempts++;
+                if (retryTimer === null) {
+                  retryTimer = setTimeout(function () {
+                    retryTimer = null;
+                    startLoadAll();
+                  }, 1500);
+                }
+              }
               return;
             }
             // 上一页还在加载中（按钮禁用）→ 跳过本次 tick，避免无效点击与加载重叠
@@ -437,17 +449,26 @@ window.__ModuleLoader__.load({
           updateActive();
         });
       }
-      // 检测可见 flow 变化 → 重新触发历史加载（startLoadAll 防重入）
-      var lastFlow = null;
+      // 检测可见 flow 集合变化 → 重新触发历史加载（startLoadAll 防重入）。
+      // 用「可见 flow 集合的签名」而不是单个 lastFlow：切换会话时新旧 flow
+      // 的挂载/隐藏顺序不定，只比较第一个可见 flow 会在"内容尚未就绪"时
+      // 错过触发，导致横杠不自动加载（必须刷新才恢复）。
+      var lastFlowSig = '';
+      var retryTimer = null;
+      var retryAttempts = 0;
       function ensureHistoryLoad() {
         var flows = document.querySelectorAll('[data-chat-flow]');
-        var visible = null;
+        var sig = [];
         for (var i = 0; i < flows.length; i++) {
           var r0 = flows[i].getBoundingClientRect();
-          if (flows[i].offsetParent !== null || r0.width > 0) { visible = flows[i]; break; }
+          if (flows[i].offsetParent !== null || r0.width > 0) {
+            sig.push(flows[i].getAttribute('data-chat-flow-key') || flows[i].getAttribute('data-chat-anchor-key') || ('flow-' + i));
+          }
         }
-        if (visible !== null && visible !== lastFlow) {
-          lastFlow = visible;
+        var next = sig.join(',');
+        if (next !== lastFlowSig) {
+          lastFlowSig = next;
+          retryAttempts = 0; // 换了可见会话，重试计数重置
           startLoadAll();
         }
       }
@@ -506,6 +527,7 @@ window.__ModuleLoader__.load({
       function stop() {
         if (watchdog !== null) { clearInterval(watchdog); watchdog = null; }
         if (loadTimer !== null) { clearInterval(loadTimer); loadTimer = null; }
+        if (retryTimer !== null) { clearTimeout(retryTimer); retryTimer = null; }
         if (bodyObserver !== null) { bodyObserver.disconnect(); bodyObserver = null; }
         if (flowObserver !== null) { flowObserver.disconnect(); flowObserver = null; }
         if (raf !== null) { cancelAnimationFrame(raf); raf = null; }
@@ -619,10 +641,9 @@ window.__ModuleLoader__.load({
         var input = null;
         var output = null;
         if (usage && typeof usage === 'object') {
+          // 官方口径：billedInput = uncachedInputTokens + cacheReadTokens + cacheWriteTokens
           if (typeof usage.uncachedInputTokens === 'number' && typeof usage.cacheReadTokens === 'number' && typeof usage.cacheWriteTokens === 'number') {
             input = usage.uncachedInputTokens + usage.cacheReadTokens + usage.cacheWriteTokens;
-          } else if (typeof usage.billedInputTokens === 'number') {
-            input = usage.billedInputTokens; // 旧版本字段回退
           }
           if (typeof usage.outputTokens === 'number') output = usage.outputTokens;
         }
@@ -654,9 +675,19 @@ window.__ModuleLoader__.load({
         } catch (e) { /* 忽略 */ }
         return null;
       }
+      // 会话切换即取数：id 变化时立即拉一次；同一会话由低频定时器轮询
+      var lastSessionId = null;
       function fetchTotal() {
         var id = currentSessionId();
-        if (id !== null) { fetchFor(id); return; }
+        var changed = id !== null && id !== lastSessionId;
+        if (changed) {
+          lastSessionId = id;
+          lastValue = null; // 换会话后旧值作废，等新值回来再显示
+        }
+        if (id !== null) {
+          if (changed) fetchFor(id);
+          return;
+        }
         // 兜底：取最近更新的会话
         try {
           var connection = ctx.get('connection');
@@ -683,12 +714,20 @@ window.__ModuleLoader__.load({
         document.body.appendChild(badge);
         window.addEventListener('scroll', onScroll, true);
         window.addEventListener('resize', onScroll);
-        // 2s 轮询：页面刚加载时会话列表可能未就绪，首次数值会在下一轮补上；
-        // 会话运行中 token 持续增长，2s 能让徽章跟得比较近
+        // 低频轮询（10s）：同一会话的 token 增长不必频繁刷新；
+        // 切换会话由 fetchTotal 里的 id 变化检测立即取数。
+        // 页面隐藏（切后台标签）时暂停取数，回来立即补一次。
+        var onVisibility = function () {
+          if (document.visibilityState === 'visible') {
+            position();
+            fetchTotal();
+          }
+        };
+        document.addEventListener('visibilitychange', onVisibility);
         timer = setInterval(function () {
           position();
-          fetchTotal();
-        }, 2000);
+          if (document.visibilityState !== 'hidden') fetchTotal();
+        }, 10000);
         position();
         fetchTotal();
       }
@@ -697,6 +736,7 @@ window.__ModuleLoader__.load({
         if (raf !== null) { cancelAnimationFrame(raf); raf = null; }
         window.removeEventListener('scroll', onScroll, true);
         window.removeEventListener('resize', onScroll);
+        document.removeEventListener('visibilitychange', onVisibility);
         if (badge !== null) { badge.remove(); badge = null; }
       }
       return { start: start, stop: stop };
