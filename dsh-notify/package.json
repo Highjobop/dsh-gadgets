@@ -1,0 +1,40 @@
+{
+  "name": "dsh-notify",
+  "description": "DSH task notification plugin: a chime (Web Audio, no assets) plus a popup (browser Notification, or an in-page top-right toast as fallback) when a session finishes running or starts waiting for your approval / answer. Browser-side only, lightweight, Settings → General → Task alerts.",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "plugin",
+    "notify",
+    "notification",
+    "sound",
+    "toast",
+    "ui"
+  ],
+  "author": "Highjobop",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Highjobop/dsh-gadgets.git",
+    "directory": "dsh-notify"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web"
+    }
+  },
+  "license": "MIT"
+}
