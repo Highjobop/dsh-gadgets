@@ -1,7 +1,7 @@
 {
   "name": "dsh-skin",
-  "description": "DSH custom appearance plugin: light/dark switch, 15 preset skins, 13 adjustable color roles and font scaling, persisted in localStorage (survives restart).",
-  "version": "0.2.0",
+  "description": "DSH custom appearance plugin: light/dark switch, 15 preset skins, 13 adjustable color roles and font scaling, zh/en bilingual UI, persisted in localStorage (survives restart).",
+  "version": "0.3.0",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
