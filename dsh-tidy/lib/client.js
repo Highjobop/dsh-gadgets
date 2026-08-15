@@ -34,8 +34,9 @@ window.__ModuleLoader__.load({
       '.dshtidy-navdot:hover{transform:scaleX(1.3);background:color-mix(in srgb, var(--dsw-specific-bubble-highlight, var(--dsw-alias-brand-primary)) 45%, transparent)}',
       '.dshtidy-navdot.dshtidy-active{width:24px;background:color-mix(in srgb, var(--dsw-specific-bubble-highlight, var(--dsw-alias-brand-primary)) 45%, transparent)}',
       // ── 总 Token 徽章（对话区左下角，圆角矩形，半透明自适应背景 + 细描边，
-      //    文字用主题色：浅色背景下浅、深色背景下深，不抢眼）──
-      '.dshtidy-tok{position:fixed;z-index:900;left:0;bottom:0;display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:16px;background:color-mix(in srgb, var(--dsw-alias-bg-layer-1) 82%, transparent);border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;line-height:16px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);pointer-events:none;white-space:nowrap}'
+      //    文字用主题色：浅色背景下浅、深色背景下深，不抢眼。
+      //    不用 backdrop-filter——它与半透明背景+描边组合会产生双层边伪影）──
+      '.dshtidy-tok{position:fixed;z-index:900;left:0;bottom:0;display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:16px;background:color-mix(in srgb, var(--dsw-alias-bg-layer-1) 88%, transparent);border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;line-height:16px;pointer-events:none;white-space:nowrap}'
     ].join('\n');
     if (typeof document !== 'undefined' && document.querySelector('style[data-plugin-css="dsh-tidy/ui"]') === null) {
       var uiTag = document.createElement('style');
@@ -548,6 +549,7 @@ window.__ModuleLoader__.load({
       var timer = null;
       var lastValue = null;
       var wasHidden = true; // 徽章刚挂载时未定位到对话流，避免重复触发取数
+      var sessionSub = null; // sessions.list 订阅（切换会话立即取数）
 
       function formatTokens(n) {
         if (n === null || n === undefined) return '--';
@@ -715,7 +717,7 @@ window.__ModuleLoader__.load({
         window.addEventListener('scroll', onScroll, true);
         window.addEventListener('resize', onScroll);
         // 低频轮询（10s）：同一会话的 token 增长不必频繁刷新；
-        // 切换会话由 fetchTotal 里的 id 变化检测立即取数。
+        // 切换会话由 sessions.list 订阅立即取数（不依赖轮询周期）。
         // 页面隐藏（切后台标签）时暂停取数，回来立即补一次。
         var onVisibility = function () {
           if (document.visibilityState === 'visible') {
@@ -724,6 +726,16 @@ window.__ModuleLoader__.load({
           }
         };
         document.addEventListener('visibilitychange', onVisibility);
+        try {
+          var sessions = ctx.get('sessions');
+          if (sessions !== undefined && sessions.list && typeof sessions.list.subscribe === 'function') {
+            sessionSub = sessions.list.subscribe(function () {
+              // 会话切换（current 变化）：立即取数 + 重新定位
+              position();
+              fetchTotal();
+            });
+          }
+        } catch (e) { /* 忽略 */ }
         timer = setInterval(function () {
           position();
           if (document.visibilityState !== 'hidden') fetchTotal();
@@ -733,6 +745,7 @@ window.__ModuleLoader__.load({
       }
       function stop() {
         if (timer !== null) { clearInterval(timer); timer = null; }
+        if (sessionSub !== null) { try { sessionSub(); } catch (e) { /* 忽略 */ } sessionSub = null; }
         if (raf !== null) { cancelAnimationFrame(raf); raf = null; }
         window.removeEventListener('scroll', onScroll, true);
         window.removeEventListener('resize', onScroll);
