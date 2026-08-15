@@ -1,4 +1,4 @@
-// dsh-tidy browser bundle. 三个对话整理功能（常开，无设置开关）：
+// dsh-tidy browser bundle. 三个对话整理功能（默认开启，设置 → 通用 里有三个开关）：
 // 1) 消息折叠：全局折叠模式 —— 每个回合只保留最后一条 assistant 回答，
 //    中间内容（思考/工具/中间输出）全部隐藏。对话区左上角按钮切换
 //    「简洁 / 完整」，选择持久化在 localStorage（默认完整）。
@@ -6,6 +6,9 @@
 //    自动加载全部历史（按钮就绪才点、最多 8 页、无增长即停），可上下滚动。
 // 3) 总 Token 徽章：对话区左下角圆角矩形，与折叠按钮左对齐、与底部统计行
 //    （"74 轮 · 757 步"）底对齐；只显示总 token，数据读 client 会话投影。
+// 开关通过 settings.general.item 槽位注册（第二层条目「对话整理」，条目内
+// 三行开关为第三层内容），状态与折叠模式一起持久化在 localStorage；关闭
+// 某功能时对应 controller 立即停止并清理 DOM。
 // 安全设计（全部对照官方源码 DOM 契约）：
 // - 绝不向 React 管理的 [data-chat-flow] 子树插入任何节点：只改既有元素的
 //   style.display；按钮/导航条/徽章挂在 document.body 浮动层。
@@ -20,6 +23,53 @@ window.__ModuleLoader__.load({
     var module = { exports: {} };
     var exports = module.exports;
     Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+    // React 来自 module loader 的 seed word（官方 bundle 均如此），
+    // 仅用于设置面板的开关行组件（settings.general.item 条目内容）。
+    var React = require('react');
+
+    // ── 双语字典（dsh-tidy namespace）。所有用户可见文本走 t()，
+    //    语言切换后：设置行（React 组件）经 locale.subscribe 重渲染；
+    //    折叠按钮/导航条/徽章（DOM）经 locale/change 事件刷新文本。 ──
+    var I18N = {
+      zh: {
+        'fold.simple': '简洁模式',
+        'fold.full': '完整模式',
+        'fold.toFull': '点击切换为完整模式',
+        'fold.toSimple': '点击切换为简洁模式',
+        'fold.tip': '折叠：只显示最终结果，隐藏思考过程与工具调用',
+        'nav.jump': '跳转到消息 {n}：{preview}',
+        'nav.empty': '（空消息）',
+        'token.label': '总 Token：{value}',
+        'token.warn': '上下文快满了',
+        'set.page.title': '对话整理',
+        'set.page.desc': '对话区整理工具：折叠消息、消息导航、总 Token 统计，均可独立开关。',
+        'set.archive.title': '消息折叠',
+        'set.archive.desc': '每个回合只保留最后一条回答，隐藏思考过程与工具调用',
+        'set.nav.title': '导航条',
+        'set.nav.desc': '右侧短横杠节点，悬停显示消息摘要，可滚动跳转',
+        'set.token.title': '总 Token 徽章',
+        'set.token.desc': '左下角显示总 Token，上下文占用 ≥60% 变色、≥80% 变红提醒'
+      },
+      en: {
+        'fold.simple': 'Simple mode',
+        'fold.full': 'Full mode',
+        'fold.toFull': 'Click to switch to full mode',
+        'fold.toSimple': 'Click to switch to simple mode',
+        'fold.tip': 'Fold: show only the final result, hide thoughts and tool calls',
+        'nav.jump': 'Go to message {n}: {preview}',
+        'nav.empty': '(empty message)',
+        'token.label': 'Total tokens: {value}',
+        'token.warn': 'Context nearly full',
+        'set.page.title': 'Conversation Tidy',
+        'set.page.desc': 'Conversation utilities: message folding, message rail, total-token stats, each independently toggleable.',
+        'set.archive.title': 'Message folding',
+        'set.archive.desc': 'Keep only the final answer per turn, hide thoughts and tool calls',
+        'set.nav.title': 'Navigation rail',
+        'set.nav.desc': 'Right-edge node rail; hover for message previews, scrollable jump',
+        'set.token.title': 'Total token badge',
+        'set.token.desc': 'Bottom-left total token badge; warning color at ≥60% context usage, red at ≥80%'
+      }
+    };
 
     var UI_CSS = [
       // ── 折叠模式按钮（body 浮动层，对话区左上角，单行；
@@ -40,7 +90,26 @@ window.__ModuleLoader__.load({
       '.dshtidy-tok{position:fixed;z-index:900;left:0;bottom:0;display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:16px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;line-height:16px;pointer-events:none;white-space:nowrap}',
       '.dshtidy-tok.dshtidy-tok-w60{background:var(--dsw-alias-button-info-fill);border-color:var(--dsw-alias-button-info-hover);color:#fff}',
       '.dshtidy-tok.dshtidy-tok-w80{background:var(--dsw-alias-state-error-primary);border-color:var(--dsw-alias-state-error-primary);color:#fff}',
-      '.dshtidy-tok-warn{font-size:11px;line-height:16px;font-weight:500;opacity:.95}'
+      '.dshtidy-tok-warn{font-size:11px;line-height:16px;font-weight:500;opacity:.95}',
+      // ── 设置面板开关行（settings.general.item 条目内容，样式对齐官方 LanguageRow）──
+      '.dshtidy-setrow{border-bottom:1px solid var(--dsw-alias-border-l2);align-items:center;gap:8px;padding:16px 0;display:flex}',
+      '.dshtidy-settext{flex-direction:column;flex:1;gap:4px;min-width:0;padding-right:48px;display:flex}',
+      '.dshtidy-settitle{color:var(--dsw-alias-label-primary);font-size:14px;font-weight:400;line-height:22px}',
+      '.dshtidy-setdesc{color:var(--dsw-alias-label-secondary);font-size:12px;line-height:18px}',
+      '.dshtidy-switch{flex:none;width:40px;height:22px;border-radius:11px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-module-platform);cursor:pointer;position:relative;padding:0;transition:background .15s,border-color .15s}',
+      '.dshtidy-switch:hover{border-color:var(--dsw-alias-label-caption)}',
+      '.dshtidy-switch-knob{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:8px;background:var(--dsw-alias-label-caption);transition:left .15s,background .15s}',
+      '.dshtidy-switch-on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}',
+      '.dshtidy-switch-on .dshtidy-switch-knob{left:20px;background:#fff}',
+      // ── 设置条目（settings.general.item，第二层条目；结构对齐 dsh-notify「任务提醒」
+      //    折叠行）：标题行 + chevron，点击展开第三层内容；默认收起 ──
+      '.dshtidy-rowwrap{border-bottom:1px solid var(--dsw-alias-border-l2);padding:12px 0}',
+      '.dshtidy-head{display:flex;align-items:center;justify-content:space-between;width:100%;border:none;background:none;color:var(--dsw-alias-label-primary);cursor:pointer;font:inherit;font-size:14px;padding:2px 0}',
+      '.dshtidy-head:hover{color:var(--dsw-alias-brand-primary)}',
+      '.dshtidy-chevron{transition:transform .15s;color:var(--dsw-alias-label-secondary);font-size:12px}',
+      '.dshtidy-chevron.dshtidy-open{transform:rotate(90deg)}',
+      '.dshtidy-setbody{display:flex;flex-direction:column;gap:10px;margin-top:8px;padding-top:8px}',
+      '.dshtidy-setbody .dshtidy-setrow{border-bottom:none;padding:6px 0}'
     ].join('\n');
     if (typeof document !== 'undefined' && document.querySelector('style[data-plugin-css="dsh-tidy/ui"]') === null) {
       var uiTag = document.createElement('style');
@@ -195,7 +264,7 @@ window.__ModuleLoader__.load({
     }
 
     // ── 折叠模式按钮（对话区左上角）──
-    function createModeButtonController(getFolded, setFolded) {
+    function createModeButtonController(getFolded, setFolded, t) {
       var btn = null;
       var raf = null;
       var watchdog = null;
@@ -204,8 +273,9 @@ window.__ModuleLoader__.load({
         if (btn === null) return;
         if (btn.children.length < 2) return;
         var folded = getFolded();
-        btn.children[0].textContent = folded ? '简洁模式' : '完整模式';
-        btn.children[1].textContent = folded ? '点击切换为完整模式' : '点击切换为简洁模式';
+        btn.children[0].textContent = folded ? t('fold.simple') : t('fold.full');
+        btn.children[1].textContent = folded ? t('fold.toFull') : t('fold.toSimple');
+        btn.title = t('fold.tip');
       }
       function position() {
         if (btn === null) return;
@@ -244,7 +314,7 @@ window.__ModuleLoader__.load({
         if (btn !== null) return;
         btn = document.createElement('button');
         btn.className = 'dshtidy-fbtn';
-        btn.title = '折叠：只显示最终结果，隐藏思考过程与工具调用';
+        btn.title = t('fold.tip');
         btn.addEventListener('click', function () {
           setFolded(!getFolded());
           updateText();
@@ -269,11 +339,11 @@ window.__ModuleLoader__.load({
         window.removeEventListener('resize', onScroll);
         if (btn !== null) { btn.remove(); btn = null; }
       }
-      return { start: start, stop: stop };
+      return { start: start, stop: stop, updateText: updateText };
     }
 
     // ── 导航条：仅 user 行锚点（气泡结构检测），右侧文字节点显示消息前几个字 ──
-    function createNavbarController(getLoadingHistory, setLoadingHistory) {
+    function createNavbarController(getLoadingHistory, setLoadingHistory, t) {
       var bar = null;
       var bodyObserver = null;
       var flowObserver = null;
@@ -313,7 +383,7 @@ window.__ModuleLoader__.load({
       function previewText(anchor) {
         var bubble = anchor.querySelector('[class*="bubble"]');
         var text = ((bubble !== null ? bubble : anchor).textContent || '').replace(/\s+/g, ' ').trim();
-        if (text.length === 0) return '（空消息）';
+        if (text.length === 0) return t('nav.empty');
         return text.length > 12 ? text.slice(0, 12) + '…' : text;
       }
       // 自动加载全部历史：轻量策略 —— 按钮就绪（非禁用）才点、最多 8 页、
@@ -432,11 +502,13 @@ window.__ModuleLoader__.load({
             var dot = document.createElement('button');
             dot.className = 'dshtidy-navdot';
             // 提示文字（气泡前几个字）延迟到悬停/聚焦时才读取——重建时读全部
-            // 气泡文本是刷新后卡顿的主因；悬停时才读，成本趋近于零
-            var title = null;
+            // 气泡文本是刷新后卡顿的主因；悬停时才读，成本趋近于零。
+            // title 缓存挂在 node 对象上：语言切换时 refreshTitles 置空，
+            // 悬停时用当前语言重新生成。
+            var node = { anchor: anchor, dot: dot, title: null };
             var applyTitle = function () {
-              if (title === null) title = '跳转到消息 ' + (idx + 1) + '：' + previewText(anchor);
-              dot.title = title;
+              if (node.title === null) node.title = t('nav.jump', { n: idx + 1, preview: previewText(anchor) });
+              dot.title = node.title;
             };
             dot.addEventListener('mouseenter', applyTitle);
             dot.addEventListener('focus', applyTitle);
@@ -446,7 +518,7 @@ window.__ModuleLoader__.load({
               if (current !== undefined) current.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
             bar.appendChild(dot);
-            nodes.push({ anchor: anchor, dot: dot });
+            nodes.push(node);
           })(limited[i], i);
         }
         bar.style.display = nodes.length >= 1 ? '' : 'none';
@@ -523,6 +595,14 @@ window.__ModuleLoader__.load({
         // 自动加载全部历史（轻量：就绪才点、最多 8 页；切换会话由 ensureHistoryLoad 再次触发）
         startLoadAll();
       }
+      // 语言切换：title 是懒生成+缓存的（悬停才读气泡文本），必须清掉缓存，
+      // 下次悬停/聚焦时用当前语言重新生成
+      function refreshTitles() {
+        for (var i = 0; i < nodes.length; i++) {
+          nodes[i].title = null;
+          if (nodes[i].dot !== null) nodes[i].dot.title = '';
+        }
+      }
       function stop() {
         if (watchdog !== null) { clearInterval(watchdog); watchdog = null; }
         if (loadTimer !== null) { clearInterval(loadTimer); loadTimer = null; }
@@ -534,13 +614,13 @@ window.__ModuleLoader__.load({
         nodes = [];
         observedFlows = [];
       }
-      return { start: start, stop: stop };
+      return { start: start, stop: stop, refreshTitles: refreshTitles };
     }
 
     // ── 总 Token 徽章：对话区左下角圆角矩形，与折叠按钮左对齐、
     //    与底部统计行（"74 轮 · 757 步"）底对齐；token 数据直接读 client 端
     //    会话投影（sessions.history 的 projections，无需自定义 host API）──
-    function createTokenBadgeController(ctx) {
+    function createTokenBadgeController(ctx, t) {
       var badge = null;
       var raf = null;
       var timer = null;
@@ -548,6 +628,7 @@ window.__ModuleLoader__.load({
       var lastPercent = null;
       var wasHidden = true; // 徽章刚挂载时未定位到对话流，避免重复触发取数
       var sessionSub = null; // sessions.list 订阅（切换会话立即取数）
+      var onVisibility = null; // visibilitychange 监听器（start 注册 / stop 移除）
 
       function formatTokens(n) {
         if (n === null || n === undefined) return '--';
@@ -557,13 +638,15 @@ window.__ModuleLoader__.load({
       }
       // 统计行在 composer 区（输入框下方 dock）内渲染，不在 [data-chat-flow] 里；
       // 只在该区域内找文本，避免误匹配用户消息里引用的"74 轮 · 757 步"。
+      // 官方文案：zh "{turns} 轮 · {steps} 步" / en "{turns} turns · {steps} steps"
+      // （英文是 turns，不是 rounds——用错词会导致英文界面匹配失败、徽章位置偏差）。
       function findStatsLine(root) {
         if (!root || typeof document === 'undefined' || !document.createTreeWalker) return null;
         var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
         var node;
         while ((node = walker.nextNode()) !== null) {
           var t = node.data || '';
-          if ((t.indexOf('轮') !== -1 && t.indexOf('步') !== -1) || (t.indexOf('rounds') !== -1 && t.indexOf('steps') !== -1)) {
+          if ((t.indexOf('轮') !== -1 && t.indexOf('步') !== -1) || (t.indexOf('turns') !== -1 && t.indexOf('steps') !== -1)) {
             var p = node.parentElement;
             while (p !== null && p !== root && p.childElementCount === 1) p = p.parentElement;
             return p;
@@ -667,9 +750,10 @@ window.__ModuleLoader__.load({
         }
       }
       function renderBadge(total, percent) {
+        if (badge === null) return;
         badge.textContent = '';
         var main = document.createElement('span');
-        main.textContent = '总 Token：' + formatTokens(total);
+        main.textContent = t('token.label', { value: formatTokens(total) });
         badge.appendChild(main);
         badge.classList.remove('dshtidy-tok-w60', 'dshtidy-tok-w80');
         if (percent !== null && percent >= 80) {
@@ -677,12 +761,18 @@ window.__ModuleLoader__.load({
           badge.classList.add('dshtidy-tok-w80');
           var warn = document.createElement('span');
           warn.className = 'dshtidy-tok-warn';
-          warn.textContent = '上下文快满了';
+          warn.textContent = t('token.warn');
           badge.appendChild(warn);
         } else if (percent !== null && percent >= 60) {
           // 接近上限：发送按钮同款颜色
           badge.classList.add('dshtidy-tok-w60');
         }
+      }
+      // 语言切换：用当前语言重绘徽章（数据不变，只换文本；未取到数据时显示 --）
+      function refreshText() {
+        if (badge === null) return;
+        if (lastValue !== null) renderBadge(lastValue, lastPercent);
+        else badge.textContent = t('token.label', { value: '--' });
       }
       function fetchFor(sessionId) {
         var connection = ctx.get('connection');
@@ -748,14 +838,14 @@ window.__ModuleLoader__.load({
         if (badge !== null) return;
         badge = document.createElement('div');
         badge.className = 'dshtidy-tok';
-        badge.textContent = '总 Token：--';
+        badge.textContent = t('token.label', { value: '--' });
         document.body.appendChild(badge);
         window.addEventListener('scroll', onScroll, true);
         window.addEventListener('resize', onScroll);
         // 低频轮询（10s）：同一会话的 token 增长不必频繁刷新；
         // 切换会话由 sessions.list 订阅立即取数（不依赖轮询周期）。
         // 页面隐藏（切后台标签）时暂停取数，回来立即补一次。
-        var onVisibility = function () {
+        onVisibility = function () {
           if (document.visibilityState === 'visible') {
             position();
             fetchTotal(true);
@@ -788,28 +878,70 @@ window.__ModuleLoader__.load({
         document.removeEventListener('visibilitychange', onVisibility);
         if (badge !== null) { badge.remove(); badge = null; }
       }
-      return { start: start, stop: stop };
+      return { start: start, stop: stop, refreshText: refreshText };
     }
 
-    // ── 持久化：localStorage（第三方命名空间无法通过 settings RPC 写入）──
+    // ── 持久化：localStorage（第三方命名空间无法通过 settings RPC 写入）。
+    // 结构 { folded, archive, nav, token }；兼容旧版裸布尔（仅折叠模式）格式。
     var STORAGE_KEY = 'dsh-tidy.settings';
-    function loadFolded() {
+    var DEFAULT_SETTINGS = { folded: false, archive: true, nav: true, token: true };
+    function loadSettings() {
       try {
         var raw = localStorage.getItem(STORAGE_KEY);
-        if (raw === null) return false;
+        if (raw === null) return { folded: false, archive: true, nav: true, token: true };
         var parsed = JSON.parse(raw);
-        return parsed === true;
+        // 旧版：裸布尔 = folded，三个功能默认开启
+        if (typeof parsed === 'boolean') return { folded: parsed, archive: true, nav: true, token: true };
+        if (parsed === null || typeof parsed !== 'object') return { folded: false, archive: true, nav: true, token: true };
+        return {
+          folded: parsed.folded === true,
+          archive: parsed.archive !== false,
+          nav: parsed.nav !== false,
+          token: parsed.token !== false
+        };
       } catch (e) {
-        return false;
+        return { folded: false, archive: true, nav: true, token: true };
       }
     }
-    function saveFolded(value) {
+    function saveSettings(value) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
       } catch (e) { /* 存储不可用 */ }
     }
 
     function apply(ctx) {
+      // ── 跨 HMR 清理：DSH 客户端热重载会重新执行本 bundle，但旧实例的
+      //    MutationObserver / setInterval / 事件监听 / 字典 / 槽位注册
+      //    不会被 Cordis 自动停掉（旧 fiber 的 cleanup 不保证执行）。
+      //    旧 watchdog 每秒会按旧的折叠状态把行重新折回去——这正是
+      //    "折叠按钮按了没用"的根因；旧字典/旧槽位不清理则新实例
+      //    重复注册会抛错（"开关没用"的根因）。
+      //    新实例启动前先调用上一实例的 cleanup，再把自己挂到 window，
+      //    保证任何时刻页面上只有一个活跃实例的全部副作用。 ──
+      try {
+        if (typeof window.__dshtidyDispose === 'function') {
+          window.__dshtidyDispose();
+          window.__dshtidyDispose = null;
+        }
+      } catch (e) { /* 忽略 */ }
+      // ── 国际化：注册双语字典并绑定 t。locale 服务缺失时回退中文。
+      //    同步注册并保存 disposer（HMR 时旧字典仍在，异步注册会重复抛错）。 ──
+      var locale = ctx.get('locale');
+      var i18nDispose = null;
+      var t = function (key, params) {
+        // 兜底：无 locale 服务时直接查中文表（保持功能可用）
+        var text = I18N.zh[key] !== undefined ? I18N.zh[key] : key;
+        if (params === undefined || params === null) return text;
+        return String(text).replace(/\{(\w+)\}/g, function (m, name) {
+          return name in params ? String(params[name]) : m;
+        });
+      };
+      if (locale !== undefined && typeof locale.register === 'function' && typeof locale.bind === 'function') {
+        try {
+          i18nDispose = locale.register('dsh-tidy', I18N);
+        } catch (e) { /* 字典已存在（HMR 竞态）时忽略 */ }
+        t = locale.bind('dsh-tidy');
+      }
       // DSH 的 client 插件热重载（HMR）会在每次 client.js 变化时重新 apply，
       // 旧实例的 DOM 元素可能残留（曾出现 5 个徽章叠在一起的重影）。
       // 启动前清掉页面上所有旧的 dsh-tidy 元素，保证幂等：页面永远只有一个。
@@ -822,17 +954,17 @@ window.__ModuleLoader__.load({
           }
         } catch (e) { /* 忽略 */ }
       }
-      // 消息收纳 + 导航条默认开启，无设置开关
+      // 三个功能开关 + 折叠模式，统一持久化
+      var settings = loadSettings();
       var archiveCtrl = null;
       var modeBtnCtrl = null;
       var navCtrl = null;
       var tokenBadgeCtrl = null;
-      var folded = loadFolded();
 
-      function getFolded() { return folded; }
+      function getFolded() { return settings.folded; }
       function setFolded(value) {
-        folded = value;
-        saveFolded(value);
+        settings.folded = value;
+        saveSettings(settings);
         if (archiveCtrl !== null) {
           if (value) archiveCtrl.applyMode(); // 折叠：应用折叠
           else archiveCtrl.restoreAll();      // 展开：恢复所有行
@@ -844,29 +976,189 @@ window.__ModuleLoader__.load({
       function getLoadingHistory() { return loadingHistory; }
       function setLoadingHistory(v) { loadingHistory = v; }
 
+      function startArchive() {
+        if (archiveCtrl !== null) return;
+        archiveCtrl = createArchiveController(getFolded, setFolded, getLoadingHistory);
+        modeBtnCtrl = createModeButtonController(getFolded, setFolded, t);
+        archiveCtrl.start();
+        modeBtnCtrl.start();
+      }
+      function stopArchive() {
+        if (archiveCtrl !== null) { archiveCtrl.stop(); archiveCtrl = null; }
+        if (modeBtnCtrl !== null) { modeBtnCtrl.stop(); modeBtnCtrl = null; }
+      }
+      function startNav() {
+        if (navCtrl !== null) return;
+        navCtrl = createNavbarController(getLoadingHistory, setLoadingHistory, t);
+        navCtrl.start();
+      }
+      function stopNav() {
+        if (navCtrl !== null) { navCtrl.stop(); navCtrl = null; }
+      }
+      function startToken() {
+        if (tokenBadgeCtrl !== null) return;
+        tokenBadgeCtrl = createTokenBadgeController(ctx, t);
+        tokenBadgeCtrl.start();
+      }
+      function stopToken() {
+        if (tokenBadgeCtrl !== null) { tokenBadgeCtrl.stop(); tokenBadgeCtrl = null; }
+      }
       function startAll() {
         clearStaleElements(); // 幂等：清掉热重载残留的旧元素（防重影）
-        if (archiveCtrl === null) {
-          archiveCtrl = createArchiveController(getFolded, setFolded, getLoadingHistory);
-          modeBtnCtrl = createModeButtonController(getFolded, setFolded);
-          archiveCtrl.start();
-          modeBtnCtrl.start();
-        }
-        if (navCtrl === null) { navCtrl = createNavbarController(getLoadingHistory, setLoadingHistory); navCtrl.start(); }
-        if (tokenBadgeCtrl === null) { tokenBadgeCtrl = createTokenBadgeController(ctx); tokenBadgeCtrl.start(); }
+        if (settings.archive) startArchive();
+        if (settings.nav) startNav();
+        if (settings.token) startToken();
       }
-      startAll();
-      ctx.effect(function () {
-        return function () {
-          if (archiveCtrl !== null) archiveCtrl.stop();
-          if (modeBtnCtrl !== null) modeBtnCtrl.stop();
-          if (navCtrl !== null) navCtrl.stop();
-          if (tokenBadgeCtrl !== null) tokenBadgeCtrl.stop();
+
+      // 语言切换（或字典注册）后刷新所有 DOM 文本：
+      // 折叠按钮、导航条 title 缓存、徽章文本。设置行组件自行订阅（见下）。
+      function refreshAllText() {
+        if (modeBtnCtrl !== null) modeBtnCtrl.updateText();
+        if (navCtrl !== null) navCtrl.refreshTitles();
+        if (tokenBadgeCtrl !== null) tokenBadgeCtrl.refreshText();
+      }
+      if (locale !== undefined && typeof locale.subscribe === 'function') {
+        ctx.effect(function () {
+          return locale.subscribe(refreshAllText);
+        }, 'dsh-tidy: locale text refresh');
+      }
+
+      // ── 设置条目（第二层：通用设置页内的条目，与「语言 / 外观 / 回车行为」
+      //    并列；第三层：条目下面的三个开关行）。用 settings.general.item 注册，
+      //    组件结构对齐官方 AppearanceRow（group：标题 + 内容区）。
+      //    id 用 dsh-tidy 前缀避免与官方条目冲突；label 由组件内 t() 渲染。 ──
+      function createToggleRow(titleKey, descKey, getValue, setValue) {
+        return function ToggleRow() {
+          var state = React.useState(getValue());
+          var on = state[0];
+          var setOn = state[1];
+          var tick = React.useState(0);
+          React.useEffect(function () {
+            if (locale === undefined || typeof locale.subscribe !== 'function') return;
+            return locale.subscribe(function () {
+              // 函数式更新：不依赖闭包里的旧 tick 值（订阅多次后仍能递增）
+              tick[1](function (v) { return v + 1; });
+            });
+          }, []);
+          var knob = React.createElement('span', { className: 'dshtidy-switch-knob' });
+          var switchBtn = React.createElement('button', {
+            type: 'button',
+            role: 'switch',
+            'aria-checked': on ? 'true' : 'false',
+            className: 'dshtidy-switch' + (on ? ' dshtidy-switch-on' : ''),
+            onClick: function () {
+              var next = !on;
+              setOn(next);
+              setValue(next);
+            }
+          }, knob);
+          return React.createElement('div', { className: 'dshtidy-setrow' },
+            React.createElement('div', { className: 'dshtidy-settext' },
+              React.createElement('div', { className: 'dshtidy-settitle' }, t(titleKey)),
+              React.createElement('div', { className: 'dshtidy-setdesc' }, t(descKey))
+            ),
+            switchBtn
+          );
         };
-      }, 'dsh-tidy: controllers cleanup');
+      }
+      // 三个开关行组件在 apply 层创建一次（稳定引用）：
+      // 若在渲染函数里调用 createToggleRow，每次渲染返回新组件类型，
+      // React 会判定类型变化而卸载/重挂载，开关状态会丢失。
+      var archiveRow = createToggleRow('set.archive.title', 'set.archive.desc',
+        function () { return settings.archive; },
+        function (v) {
+          settings.archive = v;
+          saveSettings(settings);
+          if (v) startArchive(); else stopArchive();
+        });
+      var navRow = createToggleRow('set.nav.title', 'set.nav.desc',
+        function () { return settings.nav; },
+        function (v) {
+          settings.nav = v;
+          saveSettings(settings);
+          if (v) startNav(); else stopNav();
+        });
+      var tokenRow = createToggleRow('set.token.title', 'set.token.desc',
+        function () { return settings.token; },
+        function (v) {
+          settings.token = v;
+          saveSettings(settings);
+          if (v) startToken(); else stopToken();
+        });
+      // 第三层条目内容（折叠行，结构对齐 dsh-notify「任务提醒」）：
+      // 第二层 = 标题行 + chevron（点击展开/收起）；第三层 = 三个开关行，默认收起。
+      function TidySettingsItem() {
+        var openState = React.useState(false); // 默认收起（与任务提醒一致）
+        var open = openState[0];
+        var setOpen = openState[1];
+        var tick = React.useState(0);
+        React.useEffect(function () {
+          if (locale === undefined || typeof locale.subscribe !== 'function') return;
+          return locale.subscribe(function () {
+            tick[1](function (v) { return v + 1; });
+          });
+        }, []);
+        var body = open ? React.createElement('div', { className: 'dshtidy-setbody' },
+          React.createElement(archiveRow),
+          React.createElement(navRow),
+          React.createElement(tokenRow)
+        ) : null;
+        return React.createElement('div', { className: 'dshtidy-rowwrap' },
+          React.createElement('button', {
+            type: 'button',
+            className: 'dshtidy-head',
+            onClick: function () { setOpen(!open); }
+          },
+            React.createElement('span', null, t('set.page.title')),
+            React.createElement('span', { className: 'dshtidy-chevron' + (open ? ' dshtidy-open' : '') }, '▶')
+          ),
+          body
+        );
+      }
+      function registerSettingsItem() {
+        var slots = ctx.get('slots');
+        if (slots === undefined) return null;
+        // 返回 disposer：HMR 时旧槽位注册必须移除，否则新实例注册同 id 会抛错
+        return slots.inject('settings.general.item', function () {
+          return slots.register(
+            // order 31：与「语言」(0)「外观」(10)「回车行为」(20)「任务提醒」(30) 同区，
+            // 排在任务提醒之后，避免与 dsh-notify 的 order 30 并列
+            { name: 'settings.general.item', id: 'dsh-tidy', order: 31 },
+            TidySettingsItem
+          );
+        });
+      }
+
+      startAll();
+      var sectionDispose = registerSettingsItem();
+      var cleanup = function () {
+        if (archiveCtrl !== null) archiveCtrl.stop();
+        if (modeBtnCtrl !== null) modeBtnCtrl.stop();
+        if (navCtrl !== null) navCtrl.stop();
+        if (tokenBadgeCtrl !== null) tokenBadgeCtrl.stop();
+        if (sectionDispose !== null && sectionDispose !== undefined) { try { sectionDispose(); } catch (e) { /* 忽略 */ } }
+        if (i18nDispose !== null) { try { i18nDispose(); } catch (e) { /* 忽略 */ } }
+        // 卸载/重载后清空全局句柄，避免下次 apply 重复清理
+        if (window.__dshtidyDispose === cleanup) window.__dshtidyDispose = null;
+      };
+      window.__dshtidyDispose = cleanup;
+      // 注册为 Cordis effect 的 disposer（setup 回调立即执行并返回 cleanup）：
+      // 直接传 cleanup 会被当作 setup 立即调用，刚启动的控制器立刻被停掉。
+      ctx.effect(function () { return cleanup; }, 'dsh-tidy: controllers cleanup');
     }
 
+    // ── 依赖声明（与官方 bundle 一致）：Cordis 会等这些服务提供后才激活本插件。
+    //    此前未声明 inject，apply 可能在 locale 服务就绪前执行，ctx.get('locale')
+    //    返回 undefined → 回退中文且永不切换——这就是"切英文还是中文"的根因。 ──
+    var inject = [
+      'slots',
+      'locale',
+      'connection',
+      'sessions'
+    ];
+
     exports.apply = apply;
+    exports.inject = inject;
     return module.exports;
   }
 });
