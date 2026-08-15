@@ -1,8 +1,10 @@
-# dsh-gadgets 聚合包：安装时插入两个子插件的组合行。
-# 依赖（dsh-skin / dsh-tidy）由 pnpm 一并装入 profile node_modules，
-# Loader 按 name 解析，两个插件一起生效。
+# dsh-gadgets 聚合包：安装时插入三个子插件的组合行。
+# 依赖（dsh-skin / dsh-tidy / dsh-notify）由 pnpm 一并装入 profile node_modules，
+# Loader 按 name 解析，三个插件一起生效。
 - insert:
     - id: dsh-skin
       name: dsh-skin
     - id: dsh-tidy
       name: dsh-tidy
+    - id: dsh-notify
+      name: dsh-notify

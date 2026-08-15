@@ -23,6 +23,14 @@
 - **Total-token badge**: bottom-left rounded rectangle, shows the session total token only (input + output), left-aligned with the fold button, bottom-aligned with the stats line; **context-pressure warning**: ≥60% turns the send-button color, ≥80% turns red with a "context nearly full" notice (same occupancy basis as the official context ring: `projectedTokens ÷ contextWindow`)
 - Fold mode persists in localStorage, default full
 
+### 🔔 dsh-notify — Task alerts (zh/en bilingual)
+- **Task done**: when a session's whole run ends (including approval waits and subagents), plays a chime + pops a notification — **alerts in the foreground too** by default (optional "only when the page is not in the foreground" mode); **manual stops stay silent**, errors and blocked runs get their own alerts
+- **Approval / answer needed**: on pending approval, plan review or an `ask_user` question, plays a chime + pops a notification, and tags the tab title with a ⚠ mark — always alerts, never missed (waits ~2.5 s so quick auto-decisions don't disturb)
+- **Sound**: Web Audio synthesized **tone library**, zero audio assets — 6 tones (Ding / Chime / Triple / Deep / Soft / Beep), one row per event = toggle + tone + preview, volume slider (**default 50 %**, remembers the last value); **Popup**: in-page top-right toast always shows (click jumps to the session) + system Notification as an extra channel when authorized
+- **Settings**: Settings → General → "Task alerts" (a second-level entry alongside Language / Appearance / Agent presets, UI switches with the DSH language) — independent toggles for done / approval / answer / error, tones, volume, popup, test buttons; persisted in localStorage
+- **Bilingual**: UI and notification texts follow the DSH language setting (zh/en)
+- Signals come from the official client `sessions` list snapshot + `session.history` end reasons (same source as the official sidebar), browser-side only, zero core changes
+
 ## Install
 
 Requires [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (0.1.0-rc.6+).
@@ -38,6 +46,7 @@ Restart dsh web after installing. To use only one of them:
 ```bash
 dsh plugin --profile web add dsh-skin    # appearance
 dsh plugin --profile web add dsh-tidy    # conversation tidy
+dsh plugin --profile web add dsh-notify  # task alerts
 ```
 
 ### Or install from GitHub (for development)
@@ -45,9 +54,10 @@ dsh plugin --profile web add dsh-tidy    # conversation tidy
 ```bash
 dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-skin
 dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-tidy
+dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-notify
 ```
 
-Manual install: copy the directory to `~/.dsh/profiles/node_modules/`, add a line `- insert: [{ id: dsh-skin, name: dsh-skin }]` (or `dsh-tidy`) to `cordis.patch.yml`, then restart DSH.
+Manual install: copy the directory to `~/.dsh/profiles/node_modules/`, add a line `- insert: [{ id: dsh-skin, name: dsh-skin }]` (or `dsh-tidy` / `dsh-notify`) to `cordis.patch.yml`, then restart DSH.
 
 ## Layout
 
@@ -55,6 +65,7 @@ Manual install: copy the directory to `~/.dsh/profiles/node_modules/`, add a lin
 dsh-gadgets/
 ├── dsh-skin/     # appearance plugin (Settings → General → Appearance)
 ├── dsh-tidy/     # conversation tidy plugin (fold button + nav rail, always on)
+├── dsh-notify/   # task alerts plugin (done / approval / answer → chime + popup)
 └── README.md
 ```
 
