@@ -8,22 +8,24 @@
 
 ## 包含的小玩意
 
-### 🎨 dsh-skin —— 外观定制
+### 🎨 dsh-skin —— 外观定制（中英文双语）
 - 15 套预设皮肤（海盐白 → 薰衣草紫，亮/暗各一套）
 - 亮/暗/跟随系统一键切换
 - 字号：小 / 中 / 大 / 特大（覆盖组合令牌 + 官方硬编码的界面文字：输入框、气泡、侧栏）
 - 13 个颜色角色自由微调（取色器 + HEX 输入）
 - 换肤自动联动界面控件：输入框、聊天气泡、按钮、对话/轨迹 tab、Deep diving 渐变、侧栏
+- 界面语言跟随 DSH 中英文切换
 - 全部选择 localStorage 持久化，重启不丢
 
-### 📦 dsh-tidy —— 对话整理
+### 📦 dsh-tidy —— 对话整理（中英文双语）
 - **消息折叠**：对话区左上角按钮切换「简洁 / 完整」——折叠时每个回合只保留最后一条回答，中间的思考、工具调用、中间输出全部隐藏
 - **导航条**：右侧短横杠节点（每条提问一个），悬停才读取前几个字、点击跳转、自动高亮，可滚轮滑动
 - **自动加载历史**：打开会话自动点「加载更早」（按钮就绪才点、最多 8 页、无增长即停），加载不卡页面、横杠实时增长
 - **总 Token 徽章**：对话区左下角圆角矩形，只显示会话总 token，与折叠按钮左对齐、与底部统计行底对齐；上下文占用 ≥60% 变发送按钮同款色、≥80% 变红并提示"上下文快满了"
+- **设置开关**：设置 → 通用 →「对话整理」（与「语言」「外观」同级的折叠条目）三个开关，关闭某功能即时停止并清理 DOM
 - 折叠模式 localStorage 持久化，默认完整
 
-### 🔔 dsh-notify —— 任务提醒（中英文双语）
+### 🔔 dsh-task-alerts —— 任务提醒（中英文双语）
 - **任务完成**：会话运行彻底结束时（整轮任务，含审批等待、子代理）播放提示音 + 弹出通知——**前台也提醒**（可开「仅后台提醒」）；**手动停止不算完成**，出错/阻塞单独提示
 - **需要审批 / 等待回答**：出现待审批、计划待审或模型提问时，播放提示音 + 弹出通知，标签页标题附加 ⚠ 标记——始终提醒，不会错过（延迟约 2.5 秒，快速自动决定的不打扰）
 - **提示音**：Web Audio 合成**音色库**（零音频资源）——6 种音色、**每事件一行 = 开关 + 音色 + 试听**、音量滑条可调（**默认 50%**，记住上次音量）；**弹窗**：浏览器 Notification（未授权自动退回页面内右上角悬浮提示，点击可跳转会话）
@@ -45,7 +47,7 @@ dsh plugin --profile web add dsh-gadgets
 ```bash
 dsh plugin --profile web add dsh-skin    # 外观定制
 dsh plugin --profile web add dsh-tidy    # 对话整理
-dsh plugin --profile web add dsh-notify  # 任务提醒
+dsh plugin --profile web add dsh-task-alerts  # 任务提醒
 ```
 
 ### 或从 GitHub 仓库安装（调试）
@@ -53,18 +55,18 @@ dsh plugin --profile web add dsh-notify  # 任务提醒
 ```bash
 dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-skin
 dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-tidy
-dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-notify
+dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-task-alerts
 ```
 
-手动安装：把对应目录放到 `~/.dsh/profiles/node_modules/`，在 `cordis.patch.yml` 加一行 `- insert: [{ id: dsh-skin, name: dsh-skin }]`（或 `dsh-tidy` / `dsh-notify`），重启 DSH。
+手动安装：把对应目录放到 `~/.dsh/profiles/node_modules/`，在 `cordis.patch.yml` 加一行 `- insert: [{ id: dsh-skin, name: dsh-skin }]`（或 `dsh-tidy` / `dsh-task-alerts`），重启 DSH。
 
 ## 结构
 
 ```
 dsh-gadgets/
 ├── dsh-skin/     # 外观定制插件（设置 → 通用 → 个性化外观）
-├── dsh-tidy/     # 对话整理插件（折叠按钮 + 导航条，常开）
-├── dsh-notify/   # 任务提醒插件（完成 / 审批 / 回答 → 提示音 + 弹窗）
+├── dsh-tidy/     # 对话整理插件（折叠按钮 + 导航条 + 总 Token 徽章，可开关）
+├── dsh-task-alerts/   # 任务提醒插件（完成 / 审批 / 回答 → 提示音 + 弹窗）
 └── README.md
 ```
 
