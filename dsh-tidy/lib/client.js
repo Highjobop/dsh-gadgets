@@ -94,7 +94,9 @@ window.__ModuleLoader__.load({
       // ── 设置面板开关行（settings.general.item 条目内容，样式对齐官方 LanguageRow）──
       '.dshtidy-setrow{border-bottom:1px solid var(--dsw-alias-border-l2);align-items:center;gap:8px;padding:16px 0;display:flex}',
       '.dshtidy-settext{flex-direction:column;flex:1;gap:4px;min-width:0;padding-right:48px;display:flex}',
-      '.dshtidy-settitle{color:var(--dsw-alias-label-primary);font-size:14px;font-weight:400;line-height:22px}',
+      // 字号与 dsh-notify「任务提醒」一致：行标签 13px/18px（dshnotify-evleft）、
+      // 描述 12px（dshnotify-hint）
+      '.dshtidy-settitle{color:var(--dsw-alias-label-primary);font-size:13px;font-weight:400;line-height:18px}',
       '.dshtidy-setdesc{color:var(--dsw-alias-label-secondary);font-size:12px;line-height:18px}',
       '.dshtidy-switch{flex:none;width:40px;height:22px;border-radius:11px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-module-platform);cursor:pointer;position:relative;padding:0;transition:background .15s,border-color .15s}',
       '.dshtidy-switch:hover{border-color:var(--dsw-alias-label-caption)}',
