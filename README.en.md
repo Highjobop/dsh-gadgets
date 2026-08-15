@@ -17,10 +17,11 @@
 - All choices persist in localStorage — survive restart
 
 ### 📦 dsh-tidy — Conversation tidy
-- **Message folding**: a button at the top-left of the conversation toggles "Folded / Expanded" — when folded, each turn keeps only the final assistant reply; thoughts, tool calls and intermediate outputs are hidden
-- **Nav rail**: short dashes on the right edge (one per question), hover shows the first few words, click jumps, active position auto-highlights, scrollable
-- **Auto-load history**: automatically clicks "Load earlier" until done (max 20 clicks / 100 nav nodes)
-- Fold mode persists in localStorage, default expanded
+- **Message folding**: a button at the top-left of the conversation toggles "Compact / Full" — when compacted, each turn keeps only the final assistant reply; thoughts, tool calls and intermediate outputs are hidden
+- **Nav rail**: short dashes on the right edge (one per question), preview text is read lazily on hover, click jumps, active position auto-highlights, scrollable
+- **Auto-load history**: button-driven — loads while a "Load earlier" button is present in the visible conversation (ready-only clicks, max 8 pages per round, stops when content stops growing, resumes after cooldown until fully loaded); no jank, dashes grow live
+- **Total-token badge**: bottom-left rounded rectangle, shows the session total token only (input + output), left-aligned with the fold button, bottom-aligned with the stats line; **context-pressure warning**: ≥60% turns the send-button color, ≥80% turns red with a "context nearly full" notice (same occupancy basis as the official context ring: `projectedTokens ÷ contextWindow`)
+- Fold mode persists in localStorage, default full
 
 ## Install
 

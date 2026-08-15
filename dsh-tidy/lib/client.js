@@ -35,8 +35,12 @@ window.__ModuleLoader__.load({
       '.dshtidy-navdot:hover{transform:scaleX(1.3);background:color-mix(in srgb, var(--dsw-specific-bubble-highlight, var(--dsw-alias-brand-primary)) 45%, transparent)}',
       '.dshtidy-navdot.dshtidy-active{width:24px;background:color-mix(in srgb, var(--dsw-specific-bubble-highlight, var(--dsw-alias-brand-primary)) 45%, transparent)}',
       // ── 总 Token 徽章（对话区左下角，圆角矩形，完全不透明自适应背景 + 细描边。
-      //    不用半透明/backdrop-filter——都会透出底层内容产生"双层矩形"伪影）──
-      '.dshtidy-tok{position:fixed;z-index:900;left:0;bottom:0;display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:16px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;line-height:16px;pointer-events:none;white-space:nowrap}'
+      //    不用半透明/backdrop-filter——都会透出底层内容产生"双层矩形"伪影。
+      //    上下文占用 ≥60% 变发送按钮色、≥80% 变红 + 提醒文字）──
+      '.dshtidy-tok{position:fixed;z-index:900;left:0;bottom:0;display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:16px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;line-height:16px;pointer-events:none;white-space:nowrap}',
+      '.dshtidy-tok.dshtidy-tok-w60{background:var(--dsw-alias-button-info-fill);border-color:var(--dsw-alias-button-info-hover);color:#fff}',
+      '.dshtidy-tok.dshtidy-tok-w80{background:var(--dsw-alias-state-error-primary);border-color:var(--dsw-alias-state-error-primary);color:#fff}',
+      '.dshtidy-tok-warn{font-size:11px;line-height:16px;font-weight:500;opacity:.95}'
     ].join('\n');
     if (typeof document !== 'undefined' && document.querySelector('style[data-plugin-css="dsh-tidy/ui"]') === null) {
       var uiTag = document.createElement('style');
@@ -541,6 +545,7 @@ window.__ModuleLoader__.load({
       var raf = null;
       var timer = null;
       var lastValue = null;
+      var lastPercent = null;
       var wasHidden = true; // 徽章刚挂载时未定位到对话流，避免重复触发取数
       var sessionSub = null; // sessions.list 订阅（切换会话立即取数）
 
@@ -627,8 +632,10 @@ window.__ModuleLoader__.load({
           fetchTotal();
         }
       }
-      // 从会话投影块取总 token（输入 + 输出；口径对齐官方 StatsLine：
-      // billedInput = uncachedInputTokens + cacheReadTokens + cacheWriteTokens）
+      // 从会话投影块取总 token + 上下文占用百分比，更新徽章文本与警示色。
+      // 变色信号用「上下文占用 %」（与官方 ContextMeter 同口径：
+      // projectedTokens ?? pressureTokens 除以 contextWindow），而不是总 token
+      // 绝对值——总 token 是历史累计消耗，会远超窗口上限，用它做阈值没意义。
       function applyUsage(values) {
         if (values === null || values === undefined) return;
         var usage = values.tokenUsage;
@@ -645,9 +652,36 @@ window.__ModuleLoader__.load({
         if (output === null && stats && typeof stats.decodeTokens === 'number') output = stats.decodeTokens;
         if (input === null && output === null) return;
         var total = (input || 0) + (output || 0);
-        if (total !== lastValue) {
+        var percent = null;
+        var pressure = values.contextPressure;
+        if (pressure && typeof pressure === 'object') {
+          var used = typeof pressure.projectedTokens === 'number' ? pressure.projectedTokens : (typeof pressure.pressureTokens === 'number' ? pressure.pressureTokens : null);
+          if (used !== null && typeof pressure.contextWindow === 'number' && pressure.contextWindow > 0) {
+            percent = Math.min(100, Math.round(used / pressure.contextWindow * 100));
+          }
+        }
+        if (total !== lastValue || percent !== lastPercent) {
           lastValue = total;
-          if (badge !== null) badge.textContent = '总 Token：' + formatTokens(total);
+          lastPercent = percent;
+          if (badge !== null) renderBadge(total, percent);
+        }
+      }
+      function renderBadge(total, percent) {
+        badge.textContent = '';
+        var main = document.createElement('span');
+        main.textContent = '总 Token：' + formatTokens(total);
+        badge.appendChild(main);
+        badge.classList.remove('dshtidy-tok-w60', 'dshtidy-tok-w80');
+        if (percent !== null && percent >= 80) {
+          // 快超过上限：红色 + 提醒文字
+          badge.classList.add('dshtidy-tok-w80');
+          var warn = document.createElement('span');
+          warn.className = 'dshtidy-tok-warn';
+          warn.textContent = '上下文快满了';
+          badge.appendChild(warn);
+        } else if (percent !== null && percent >= 60) {
+          // 接近上限：发送按钮同款颜色
+          badge.classList.add('dshtidy-tok-w60');
         }
       }
       function fetchFor(sessionId) {
@@ -682,6 +716,7 @@ window.__ModuleLoader__.load({
         if (changed) {
           lastSessionId = id;
           lastValue = null; // 换会话后旧值作废，等新值回来再显示
+          lastPercent = null;
         }
         if (id !== null) {
           var now = Date.now();
@@ -775,6 +810,18 @@ window.__ModuleLoader__.load({
     }
 
     function apply(ctx) {
+      // DSH 的 client 插件热重载（HMR）会在每次 client.js 变化时重新 apply，
+      // 旧实例的 DOM 元素可能残留（曾出现 5 个徽章叠在一起的重影）。
+      // 启动前清掉页面上所有旧的 dsh-tidy 元素，保证幂等：页面永远只有一个。
+      function clearStaleElements() {
+        try {
+          var sels = ['.dshtidy-tok', '.dshtidy-fbtn', '.dshtidy-nav'];
+          for (var s = 0; s < sels.length; s++) {
+            var els = document.querySelectorAll(sels[s]);
+            for (var i = 0; i < els.length; i++) els[i].remove();
+          }
+        } catch (e) { /* 忽略 */ }
+      }
       // 消息收纳 + 导航条默认开启，无设置开关
       var archiveCtrl = null;
       var modeBtnCtrl = null;
@@ -798,6 +845,7 @@ window.__ModuleLoader__.load({
       function setLoadingHistory(v) { loadingHistory = v; }
 
       function startAll() {
+        clearStaleElements(); // 幂等：清掉热重载残留的旧元素（防重影）
         if (archiveCtrl === null) {
           archiveCtrl = createArchiveController(getFolded, setFolded, getLoadingHistory);
           modeBtnCtrl = createModeButtonController(getFolded, setFolded);

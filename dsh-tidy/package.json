@@ -1,7 +1,7 @@
 {
   "name": "dsh-tidy",
-  "description": "DSH conversation tidy tools: fold a turn to show only the final result (button top-left of the conversation), a right-edge node rail with lazy message previews, and a bottom-left total-token badge aligned to the stats line. On by default, mode persisted in localStorage.",
-  "version": "0.3.0",
+  "description": "DSH conversation tidy tools: fold a turn to show only the final result (button top-left of the conversation), a right-edge node rail with lazy message previews, and a bottom-left total-token badge aligned to the stats line with context-pressure warning colors. On by default, mode persisted in localStorage.",
+  "version": "0.3.1",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
