@@ -54,26 +54,31 @@ window.__ModuleLoader__.load({
           if (matches[k].closest('[data-subcalls]') === null) matches[k].style.display = 'none';
         }
       }
-      // 判断 flowItem 是否为 user 消息：kind 优先，退回行内锚点（仅直接子级，
-      // 避免误匹配 turn-tail 等内部也带 data-time-hover-root 的节点）
+      // 判断 flowItem 是否为 user 消息：kind 为 user，或内部含 user 行锚点（任意深度，
+      // 某些 user 消息的锚点有嵌套包裹）。turn-tail 行也带锚点，但它走显式边界分支，无影响。
       function isUserItem(item) {
         return item.getAttribute('data-chat-flow-kind') === 'user' ||
-          (item.getAttribute('data-chat-flow-kind') === null && item.querySelector(':scope > [data-time-hover-root]') !== null);
+          item.querySelector('[data-time-hover-root]') !== null;
       }
+      // 明确的"中间内容"类型（折叠时可隐藏/参与折叠）
+      var MIDDLE_KINDS = ['assistant-step', 'tool-call', 'context', 'compaction', 'manual-compaction', 'model-retry', 'unknown'];
       function applyMode() {
         if (!getFolded()) return; // 未折叠时无需扫描（展开状态由切换路径维护）
         var flows = document.querySelectorAll('[data-chat-flow]');
         for (var i = 0; i < flows.length; i++) {
           var flow = flows[i];
-          // 折叠：按回合（user/turn-tail 消息之间）分组
+          // 折叠：按回合（边界消息之间）分组
           var turns = [];
           var turn = null;
           for (var c2 = 0; c2 < flow.children.length; c2++) {
             var item = flow.children[c2];
             if (!item.hasAttribute('data-chat-anchor-key')) continue;
             var kind = item.getAttribute('data-chat-flow-kind');
-            // user / steering（中途改需求的你的话）/ turn-tail 都是回合边界（自身保持可见）
-            if (isUserItem(item) || kind === 'steering' || kind === 'turn-tail') {
+            // 边界（自身保留、结束回合）：user / steering / command / command-input /
+            // turn-tail / 带 user 锚点的行 / 未知名类型 —— 只折叠明确是中间内容的消息，
+            // 其余一律保守保留（防止 goal/command 等特殊会话的提问被误隐藏）
+            var isMiddle = kind !== null && MIDDLE_KINDS.indexOf(kind) !== -1;
+            if (!isMiddle || isUserItem(item)) {
               if (turn !== null) turns.push(turn);
               turn = null;
               continue;
@@ -250,16 +255,25 @@ window.__ModuleLoader__.load({
       var MAX_NODES = 100;
       var loadTimer = null;
 
-      // user 行过滤（参考 dsh-navbar）：data-time-hover-root + 气泡结构；
-      // 排除 pending steering 与 assistant/turn-tail 行。
+      // 导航节点：按 flowItem 类型识别（user / steering / command / command-input），
+      // 不依赖 data-time-hover-root —— command 类提问（goal 等）没有该属性，
+      // 只靠锚点会漏掉导致导航条不显示。
       function userAnchors() {
-        var all = document.querySelectorAll('[data-time-hover-root]');
         var out = [];
-        for (var i = 0; i < all.length; i++) {
-          var row = all[i];
-          if (row.hasAttribute('data-pending-steering')) continue;
-          if (row.querySelector('[class*="bubble"]') === null) continue;
-          out.push(row);
+        var flows = document.querySelectorAll('[data-chat-flow]');
+        for (var i = 0; i < flows.length; i++) {
+          var flow = flows[i];
+          for (var c = 0; c < flow.children.length; c++) {
+            var item = flow.children[c];
+            if (!item.hasAttribute('data-chat-anchor-key')) continue;
+            var kind = item.getAttribute('data-chat-flow-kind');
+            if (kind === 'user' || kind === 'steering' || kind === 'command' || kind === 'command-input') {
+              out.push(item);
+              continue;
+            }
+            // 兼容：kind 缺失但含 user 行锚点
+            if (kind === null && item.querySelector('[data-time-hover-root]') !== null) out.push(item);
+          }
         }
         return out;
       }
@@ -324,7 +338,7 @@ window.__ModuleLoader__.load({
           }
         }
         if (anchorsSame) {
-          bar.style.display = nodes.length >= 2 ? '' : 'none';
+          bar.style.display = nodes.length >= 1 ? '' : 'none';
           updateActive();
           return;
         }
@@ -346,7 +360,7 @@ window.__ModuleLoader__.load({
             nodes.push({ anchor: anchor, dot: dot });
           })(limited[i], i);
         }
-        bar.style.display = nodes.length >= 2 ? '' : 'none';
+        bar.style.display = nodes.length >= 1 ? '' : 'none';
         updateActive();
       }
       function onScroll() {

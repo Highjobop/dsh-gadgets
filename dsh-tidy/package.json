@@ -1,7 +1,7 @@
 {
   "name": "dsh-tidy",
   "description": "DSH conversation tidy tools: fold a turn to show only the final result (button top-left of the conversation) and a right-edge node rail with message previews. On by default, mode persisted in localStorage.",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
