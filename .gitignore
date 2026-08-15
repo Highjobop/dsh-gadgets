@@ -7,3 +7,4 @@ node_modules/
 # 诊断临时文件
 dom-report.json
 diag-report.json
+dsh-ui-whale/
