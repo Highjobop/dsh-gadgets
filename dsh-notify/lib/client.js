@@ -395,7 +395,7 @@ window.__ModuleLoader__.load({
     function createWatcher(ctx, getSettings) {
       var prevRunning = {};  // sessionId -> boolean（仅顶层会话）
       var prevPending = {};  // sessionId -> undefined | 'approval' | 'plan-review' | 'question'
-      var pendingTimers = {}; // sessionId -> timeout（审批/回答延迟通知）
+      var pendingTimers = {}; // sessionId -> { kind, timer }（审批/回答延迟通知）
       var unsub = null;
       var started = false;
 
@@ -434,45 +434,55 @@ window.__ModuleLoader__.load({
         setBadge(badge);
       }
 
-      // 延迟通知：审批/回答出现后稍等片刻再响，期间消失则取消（快速自动决定不打扰）
+      // 延迟通知：审批/回答出现后稍等片刻再响，期间消失则取消（快速自动决定不打扰）。
+      // 同类请求防重入；kind 变化（如 approval→plan-review 连续切换）时重建计时器，
+      // 避免用旧 kind/旧标题触发。
       function scheduleWait(entry, kind) {
-        if (pendingTimers[entry.id] !== undefined) return;
         var title = displayTitleOf(entry);
-        pendingTimers[entry.id] = setTimeout(function () {
-          delete pendingTimers[entry.id];
-          fireWait(entry.id, kind, title);
-        }, WAIT_DELAY_MS);
+        var existing = pendingTimers[entry.id];
+        if (existing !== undefined) {
+          if (existing.kind === kind) return;
+          clearTimeout(existing.timer);
+        }
+        pendingTimers[entry.id] = {
+          kind: kind,
+          timer: setTimeout(function () {
+            delete pendingTimers[entry.id];
+            fireWait(entry.id, kind, title);
+          }, WAIT_DELAY_MS)
+        };
       }
       function cancelWait(id) {
-        if (pendingTimers[id] !== undefined) {
-          clearTimeout(pendingTimers[id]);
+        var existing = pendingTimers[id];
+        if (existing !== undefined) {
+          clearTimeout(existing.timer);
           delete pendingTimers[id];
         }
       }
+      // 审批/回答通知可点击跳转该会话（与完成/出错一致）
       function fireWait(sessionId, kind, title) {
         var s = getSettings();
         if (kind === 'question') {
           if (!s.question) return;
           if (s.sound) throttledPlay(function () { playTone(s.tones.question); });
-          if (s.popup) notify('question', translate('notifQuestion'), title + ' ' + translate('bodyQuestion'), null);
+          if (s.popup) notify('question', translate('notifQuestion'), title + ' ' + translate('bodyQuestion'), sessionId);
           return;
         }
         if (!s.approval) return;
         var label = kind === 'plan-review' ? translate('notifPlanReview') : translate('notifApproval');
         if (s.sound) throttledPlay(function () { playTone(s.tones.approval); });
-        if (s.popup) notify('approval', label, title + ' ' + translate('bodyApproval'), null);
+        if (s.popup) notify('approval', label, title + ' ' + translate('bodyApproval'), sessionId);
       }
 
       function onCompleted(entry) {
         var s = getSettings();
-        if (!s.done) return;
         // 前台抑制仅在「仅页面不在前台时提醒」开启时生效（默认关闭：前台也提醒）
         if (s.awayOnly === true && !pageAway()) return;
         var title = displayTitleOf(entry);
-        // 区分结束语义：手动停止（aborted）静默，出错单独提示，其余按完成处理
+        // 区分结束语义：手动停止（aborted）静默，出错/阻塞各自独立开关，其余按完成处理。
+        // 注意：!done 只作用于 completed 路径——error 有自己的独立开关，不被 done 门控。
         fetchTurnEndReason(ctx, entry.id).then(function (reason) {
           var s2 = getSettings();
-          if (!s2.done) return;
           if (reason === 'aborted') return; // 手动停止不算完成（参考 dsh-win-notify / dsh-notify-bark）
           if (reason === 'error') {
             if (!s2.error) return; // 出错提醒独立开关
@@ -482,10 +492,12 @@ window.__ModuleLoader__.load({
           }
           if (reason === 'blocked') {
             // 被阻塞（等待 agent 无法独自完成的事）：柔和提示，跟随完成开关
+            if (!s2.done) return;
             if (s2.sound) throttledPlay(function () { playTone(s2.tones.question); });
             if (s2.popup) notify('question', translate('notifBlocked'), title + ' ' + translate('bodyBlocked'), entry.id);
             return;
           }
+          if (!s2.done) return; // 仅 completed 路径受完成开关控制
           if (s2.sound) throttledPlay(function () { playTone(s2.tones.done); });
           if (s2.popup) notify('done', translate('notifDone'), title + ' ' + translate('bodyDone'), entry.id);
         });
@@ -737,8 +749,9 @@ window.__ModuleLoader__.load({
     }
 
     exports.apply = apply;
-    // slots / locale 是硬依赖：设置行注入 + 中英文词典注册需要它们就绪
-    exports.inject = ['slots', 'locale'];
+    // slots / locale / sessions 是硬依赖：设置行注入 + 中英文词典注册 + 信号检测
+    // 都需要它们就绪（sessions 未就绪时静默跳过会导致永不提醒，故声明为硬依赖）
+    exports.inject = ['slots', 'locale', 'sessions'];
     return module.exports;
   }
 });
