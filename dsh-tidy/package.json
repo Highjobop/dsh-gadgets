@@ -1,7 +1,7 @@
 {
   "name": "dsh-tidy",
   "description": "DSH conversation tidy tools: fold a turn to show only the final result (button top-left of the conversation), a right-edge node rail with lazy message previews, and a bottom-left total-token badge aligned to the stats line with context-pressure warning colors. Each feature has an on/off switch in Settings > General (Conversation Tidy entry); zh/en bilingual; mode persisted in localStorage.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -31,6 +31,9 @@
     "directory": "dsh-tidy"
   },
   "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
     "client": {
       "platform": "web"
     }

@@ -28,11 +28,9 @@ DSH（DeepSeek Harness）任务提醒插件（轻量，纯浏览器端，**中�
 
 ```bash
 dsh plugin --profile web add dsh-task-alerts   # npm 发布版
-# 或聚合包：dsh plugin --profile web add dsh-gadgets
+# 或聚合包：dsh plugin --profile web add dsh-gadgets@0.4.1
 # 或 GitHub 调试：dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-task-alerts
 ```
-
-或手动：包放 `~/.dsh/profiles/node_modules/dsh-task-alerts`，在 `cordis.patch.yml` 加一行 `- insert: [{ id: dsh-task-alerts, name: dsh-task-alerts }]`，重启 DSH。
 
 ## 兼容性说明
 

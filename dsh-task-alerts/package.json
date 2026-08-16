@@ -1,7 +1,7 @@
 {
   "name": "dsh-task-alerts",
   "description": "DSH task notification plugin: a chime (Web Audio, no assets) plus a popup (browser Notification, or an in-page top-right toast as fallback) when a session finishes running or starts waiting for your approval / answer. Browser-side only, lightweight, zh/en bilingual, Settings → General → Task alerts.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -32,6 +32,9 @@
     "directory": "dsh-task-alerts"
   },
   "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
     "client": {
       "platform": "web"
     }

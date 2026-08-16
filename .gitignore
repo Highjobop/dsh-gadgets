@@ -1,6 +1,7 @@
 # 本地工具与临时文件
 .claude/
 .tests/
+.pnpm-store/
 node_modules/
 *.log
 

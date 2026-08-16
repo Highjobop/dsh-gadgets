@@ -21,11 +21,9 @@ DSH（DeepSeek Harness）对话整理插件（轻量，**中英文双语**）。
 
 ```bash
 dsh plugin --profile web add dsh-tidy    # npm 发布版
-# 或聚合包：dsh plugin --profile web add dsh-gadgets
+# 或聚合包：dsh plugin --profile web add dsh-gadgets@0.4.1
 # 或 GitHub 调试：dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-tidy
 ```
-
-或手动：包放 `~/.dsh/profiles/node_modules/dsh-tidy`，在 `cordis.patch.yml` 加一行 `- insert: [{ id: dsh-tidy, name: dsh-tidy }]`，重启 DSH。
 
 ## 兼容性说明
 

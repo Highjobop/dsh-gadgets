@@ -38,10 +38,12 @@ Requires [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (0.
 ### Recommended: one command via npm (aggregate package)
 
 ```bash
-dsh plugin --profile web add dsh-gadgets
+dsh plugin --profile web add dsh-gadgets@0.4.1
 ```
 
-Restart dsh web after installing. To use only one of them:
+> Pinning avoids stale-cache installs (bare name also works with fresh registry metadata).
+
+Restart the **dsh web process** (not just the browser tab) and hard-refresh after installing. To use only one of them (either/or with the aggregate — do not mix):
 
 ```bash
 dsh plugin --profile web add dsh-skin    # appearance
@@ -57,16 +59,14 @@ dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-tidy
 dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-task-alerts
 ```
 
-Manual install: copy the directory to `~/.dsh/profiles/node_modules/`, add a line `- insert: [{ id: dsh-skin, name: dsh-skin }]` (or `dsh-tidy` / `dsh-task-alerts`) to `cordis.patch.yml`, then restart DSH.
-
 ## Layout
 
 ```
-dsh-gadgets/
-├── dsh-skin/     # appearance plugin (Settings → General → Appearance)
-├── dsh-tidy/     # conversation tidy plugin (fold button + nav rail + total-token badge, toggleable)
-├── dsh-task-alerts/   # task alerts plugin (done / approval / answer → chime + popup)
-└── README.md
+dsh-gadgets/        # aggregate package: one command installs all (npm name: dsh-gadgets)
+dsh-skin/           # appearance plugin (Settings → General → Appearance)
+dsh-tidy/           # conversation tidy plugin (fold button + nav rail + total-token badge, toggleable)
+dsh-task-alerts/    # task alerts plugin (done / approval / answer → chime + popup)
+README.md / README.en.md   # this file (zh / en)
 ```
 
 ## Compatibility

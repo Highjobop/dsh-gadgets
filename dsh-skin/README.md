@@ -16,11 +16,9 @@ DSH（DeepSeek Harness）的外观自定义插件（轻量，**中英文双语**
 
 ```bash
 dsh plugin --profile web add dsh-skin    # npm 发布版
-# 或聚合包：dsh plugin --profile web add dsh-gadgets
+# 或聚合包：dsh plugin --profile web add dsh-gadgets@0.4.1
 # 或 GitHub 调试：dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-skin
 ```
-
-或手动：包放 `~/.dsh/profiles/node_modules/dsh-skin`，在 `cordis.patch.yml` 加一行 `- insert: [{ id: dsh-skin, name: dsh-skin }]`，重启 DSH。
 
 ## 原理
 

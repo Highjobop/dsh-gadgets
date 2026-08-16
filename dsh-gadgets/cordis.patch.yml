@@ -1,6 +1,7 @@
-# dsh-gadgets 聚合包：安装时插入三个子插件的组合行。
-# 依赖（dsh-skin / dsh-tidy / dsh-task-alerts）由 pnpm 一并装入 profile node_modules，
-# Loader 按 name 解析，三个插件一起生效。
+# dsh-gadgets 聚合包：向 web 组合树插入三个子插件的加载行。
+# 三个子包作为本包依赖由 pnpm 一并装入 profile node_modules（profile 模板 nodeLinker: hoisted，
+# 传递依赖也在根目录），Loader 按 name 解析即可命中。单独安装子包时由其自身的自插 patch 生效，
+# 两种方式二选一，不要混装（会重复插入同名行）。
 - insert:
     - id: dsh-skin
       name: dsh-skin

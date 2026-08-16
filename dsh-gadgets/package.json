@@ -1,12 +1,17 @@
 {
   "name": "dsh-gadgets",
   "description": "Lightweight DeepSeek Harness tweaks, one install: dsh-skin (custom appearance) + dsh-tidy (conversation folding, nav rail & total-token badge) + dsh-task-alerts (task-done / approval chime + popup).",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "type": "module",
   "dependencies": {
-    "dsh-skin": "^0.4.0",
-    "dsh-tidy": "^0.4.0",
-    "dsh-task-alerts": "^0.4.0"
+    "dsh-skin": "^0.4.1",
+    "dsh-tidy": "^0.4.1",
+    "dsh-task-alerts": "^0.4.1"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
   },
   "files": [
     "cordis.patch.yml",

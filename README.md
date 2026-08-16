@@ -36,10 +36,12 @@
 ### 推荐：npm 一条命令装齐（聚合包）
 
 ```bash
-dsh plugin --profile web add dsh-gadgets
+dsh plugin --profile web add dsh-gadgets@0.4.1
 ```
 
-装完重启 dsh web 即可。只想用其中一个：
+> 锁版本可避免装到旧版（registry 正常时可不写版本号）。
+
+装完**重启 dsh web 进程**（不是只刷新浏览器），再硬刷新页面。只想用其中一个（与聚合包二选一，不要混装）：
 
 ```bash
 dsh plugin --profile web add dsh-skin    # 外观定制
@@ -55,16 +57,14 @@ dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-tidy
 dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-task-alerts
 ```
 
-手动安装：把对应目录放到 `~/.dsh/profiles/node_modules/`，在 `cordis.patch.yml` 加一行 `- insert: [{ id: dsh-skin, name: dsh-skin }]`（或 `dsh-tidy` / `dsh-task-alerts`），重启 DSH。
-
 ## 结构
 
 ```
-dsh-gadgets/
-├── dsh-skin/     # 外观定制插件（设置 → 通用 → 个性化外观）
-├── dsh-tidy/     # 对话整理插件（折叠按钮 + 导航条 + 总 Token 徽章，可开关）
-├── dsh-task-alerts/   # 任务提醒插件（完成 / 审批 / 回答 → 提示音 + 弹窗）
-└── README.md
+dsh-gadgets/        # 聚合包：一条命令装齐（npm 包名 dsh-gadgets）
+dsh-skin/           # 外观定制插件（设置 → 通用 → 个性化外观）
+dsh-tidy/           # 对话整理插件（折叠按钮 + 导航条 + 总 Token 徽章，可开关）
+dsh-task-alerts/    # 任务提醒插件（完成 / 审批 / 回答 → 提示音 + 弹窗）
+README.md / README.en.md   # 本文件（中 / 英）
 ```
 
 ## 兼容性

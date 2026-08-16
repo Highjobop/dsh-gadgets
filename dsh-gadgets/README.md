@@ -1,17 +1,23 @@
 # dsh-gadgets
 
-聚合包：一次安装同时启用 **dsh-skin**（外观定制）、**dsh-tidy**（对话整理）与 **dsh-task-alerts**（任务提醒）。
+聚合包：一条命令同时启用 **dsh-skin**（外观定制）、**dsh-tidy**（对话整理）与 **dsh-task-alerts**（任务提醒）。
+
+## 安装
 
 ```bash
-dsh plugin --profile web add dsh-gadgets
+dsh plugin --profile web add dsh-gadgets@0.4.1
 ```
 
-装完重启 dsh web 即可。只想用其中一个，也可以单独安装：
+> 锁版本可避免装到旧版（registry 正常时可不写版本号）。
+
+装完重启 `dsh web` 进程，再硬刷新页面（Ctrl+F5）。
+
+## 单独安装某个插件（与聚合包二选一，不要混装）
 
 ```bash
-dsh plugin --profile web add dsh-skin    # 外观定制
-dsh plugin --profile web add dsh-tidy    # 对话整理
-dsh plugin --profile web add dsh-task-alerts  # 任务提醒
+dsh plugin --profile web add dsh-skin        # 外观定制
+dsh plugin --profile web add dsh-tidy        # 对话整理
+dsh plugin --profile web add dsh-task-alerts # 任务提醒
 ```
 
 ## 包含的插件
@@ -20,7 +26,6 @@ dsh plugin --profile web add dsh-task-alerts  # 任务提醒
 - **dsh-tidy 对话整理**：消息折叠、右侧导航条（自动加载历史）、左下角总 Token 徽章，三个功能可分别开关，中英文双语
 - **dsh-task-alerts 任务提醒**：任务完成 / 出错 / 需要审批 / 等待回答时提示音 + 弹窗，每事件独立开关与音色，中英文双语
 
-详见各子包 README（`dsh-skin/README.md`、`dsh-tidy/README.md`、`dsh-task-alerts/README.md`）。
+详见各子包 README。
 
-> 若之前已手动安装过 dsh-skin/dsh-tidy/dsh-task-alerts（cordis.patch.yml 已有对应行），
-> 装聚合包前先移除旧行，避免重复插入。
+> 0.4.1 起自动加载；旧版本需手动往 `cordis.patch.yml` 插行。升级前若已手动插过行，先移除旧行再安装。
