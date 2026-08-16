@@ -1,0 +1,5 @@
+# dsh-wallpaper bundle patch. 与 dsh-skin 相同：客户端插件没有 dsh.bundle 字段，
+# `dsh plugin add` 不会自动挂载，需在 profile 的 cordis.patch.yml 里 insert 本行。
+- insert:
+    - id: dsh-wallpaper
+      name: dsh-wallpaper

@@ -29,6 +29,13 @@
 - **提示音与弹窗**：6 种音色、音量可调；浏览器通知，未授权自动用页面内悬浮提示
 - **设置**：设置 → 通用 →「任务提醒」四个事件独立开关 + 音色/音量/弹窗
 
+### 🖼️ dsh-wallpaper —— 半透明壁纸背景（中英文双语）
+- **启用开关**：对话区主背景变半透明，壁纸从内容区透出
+- **图片**：粘贴图片 URL，或选本地图片（自动降采样为 ≤1200px JPEG dataURL，localStorage 持久化）
+- **透明度 / 模糊**：10%–100% 可调，0–20px 背景模糊让文字更易读
+- **一键恢复默认**：清除壁纸并还原设置
+- 气泡卡片、侧栏保持不透明保证可读性；与 dsh-skin 兼容（主题变化自动重写透明令牌）
+
 ## 安装
 
 需要 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（0.1.0-rc.6+）。
@@ -53,9 +60,10 @@ dsh plugin --profile web add dsh-task-alerts  # 任务提醒
 dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-skin
 dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-tidy
 dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-task-alerts
+dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-wallpaper
 ```
 
-手动安装：把对应目录放到 `~/.dsh/profiles/node_modules/`，在 `cordis.patch.yml` 加一行 `- insert: [{ id: dsh-skin, name: dsh-skin }]`（或 `dsh-tidy` / `dsh-task-alerts`），重启 DSH。
+手动安装：把对应目录放到 `~/.dsh/profiles/node_modules/`，在 `cordis.patch.yml` 加一行 `- insert: [{ id: dsh-skin, name: dsh-skin }]`（或 `dsh-tidy` / `dsh-task-alerts` / `dsh-wallpaper`），重启 DSH。
 
 ## 结构
 
@@ -64,6 +72,7 @@ dsh-gadgets/
 ├── dsh-skin/     # 外观定制插件（设置 → 通用 → 个性化外观）
 ├── dsh-tidy/     # 对话整理插件（折叠按钮 + 导航条 + 总 Token 徽章，可开关）
 ├── dsh-task-alerts/   # 任务提醒插件（完成 / 审批 / 回答 → 提示音 + 弹窗）
+├── dsh-wallpaper/     # 壁纸背景插件（设置 → 通用 → 壁纸背景，半透明对话区）
 └── README.md
 ```
 
@@ -71,6 +80,7 @@ dsh-gadgets/
 
 - 颜色令牌覆盖基于官方稳定 data 属性与主题令牌，跨版本稳定
 - 字号/侧栏覆盖依赖当前构建的类名哈希（`.uV2eYG_*`、`.gdEzaW_bubble`、`.pI_x6G_sidebarCol`），DSH 升级后若失效请按新版源码更新类名（代码中已注明）
+- 壁纸透明化基于稳定设计令牌 `--dsw-alias-bg-base` 与结构性选择器（`#root [data-slot="root"]`），跨版本稳定；若令牌结构变更会静默失效（壁纸层仍在，只是被不透明背景挡住）
 
 ## 许可
 

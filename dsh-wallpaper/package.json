@@ -1,0 +1,39 @@
+{
+  "name": "dsh-wallpaper",
+  "version": "1.0.0",
+  "description": "DSH web client plugin: semi-transparent wallpaper background (image URL or local file, opacity/blur adjustable)",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "README.en.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/flyingpetals520/dsh-wallpaper.git"
+  },
+  "homepage": "https://github.com/flyingpetals520/dsh-wallpaper#readme",
+  "author": "flyingpetals520",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "plugin",
+    "wallpaper",
+    "background",
+    "ui"
+  ],
+  "dsh": {
+    "client": {
+      "platform": "web"
+    }
+  },
+  "license": "MIT"
+}

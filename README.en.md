@@ -31,6 +31,13 @@
 - **Settings**: Settings → General → "Task alerts" — independent toggles for done / approval / answer / error, tones, volume, popup
 - UI follows the DSH language setting (zh/en)
 
+### 🖼️ dsh-wallpaper — Translucent wallpaper background (zh/en bilingual)
+- **Enable toggle**: main chat background turns translucent, wallpaper shows through
+- **Image**: paste an image URL, or pick a local file (auto-downscaled to ≤1200px JPEG dataURL, persisted in localStorage)
+- **Opacity / Blur**: 10%–100% opacity, 0–20px background blur keeps text readable
+- **One-click reset**: clears the wallpaper and restores defaults
+- Chat bubbles and the sidebar stay opaque for readability; compatible with dsh-skin (re-applies the transparent token on theme change)
+
 ## Install
 
 Requires [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (0.1.0-rc.6+).
@@ -55,9 +62,10 @@ dsh plugin --profile web add dsh-task-alerts  # task alerts
 dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-skin
 dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-tidy
 dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-task-alerts
+dsh plugin --profile web add github:Highjobop/dsh-gadgets#path=dsh-wallpaper
 ```
 
-Manual install: copy the directory to `~/.dsh/profiles/node_modules/`, add a line `- insert: [{ id: dsh-skin, name: dsh-skin }]` (or `dsh-tidy` / `dsh-task-alerts`) to `cordis.patch.yml`, then restart DSH.
+Manual install: copy the directory to `~/.dsh/profiles/node_modules/`, add a line `- insert: [{ id: dsh-skin, name: dsh-skin }]` (or `dsh-tidy` / `dsh-task-alerts` / `dsh-wallpaper`) to `cordis.patch.yml`, then restart DSH.
 
 ## Layout
 
@@ -66,6 +74,7 @@ dsh-gadgets/
 ├── dsh-skin/     # appearance plugin (Settings → General → Appearance)
 ├── dsh-tidy/     # conversation tidy plugin (fold button + nav rail + total-token badge, toggleable)
 ├── dsh-task-alerts/   # task alerts plugin (done / approval / answer → chime + popup)
+├── dsh-wallpaper/     # wallpaper plugin (Settings → General → Wallpaper Background, translucent chat area)
 └── README.md
 ```
 
@@ -73,6 +82,7 @@ dsh-gadgets/
 
 - Color-token overrides rely on stable official data attributes and theme tokens — stable across versions
 - Font/sidebar overrides depend on build-specific class hashes (`.uV2eYG_*`, `.gdEzaW_bubble`, `.pI_x6G_sidebarCol`) — if they silently stop working after a DSH update, update the class names against the new source (noted in the code)
+- Wallpaper transparency relies on the stable design token `--dsw-alias-bg-base` and structural selectors (`#root [data-slot="root"]`) — stable across versions; if the token structure changes it silently stops working (the wallpaper layer remains but is covered by an opaque background)
 
 ## License
 
